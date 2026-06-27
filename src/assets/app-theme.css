@@ -1,0 +1,122 @@
+#app {
+  font-weight: normal;
+}
+
+a,
+.green {
+  text-decoration: none;
+  color: hsla(160, 100%, 37%, 1);
+  transition: 0.4s;
+  padding: 3px;
+}
+
+@media (hover: hover) {
+  a:hover {
+    background-color: hsla(160, 100%, 37%, 0.2);
+  }
+}
+
+/* SweetAlert2 custom theme used across Admin modules */
+.swal2-popup.swal-custom-popup {
+  width: min(92vw, 520px);
+  border-radius: 16px;
+  padding: 1.4rem 1.4rem 1.1rem;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.26);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.swal2-title.swal-custom-title {
+  margin-top: 0.2rem;
+  margin-bottom: 0.3rem;
+  color: #1f2937;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.swal2-html-container.swal-custom-text {
+  margin-top: 0.2rem;
+  color: #4b5563;
+  font-size: 1.12rem;
+  line-height: 1.4;
+}
+
+.swal2-popup .swal2-icon {
+  margin-top: 0.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.swal2-popup .swal2-actions {
+  width: 100%;
+  margin-top: 1rem;
+  gap: 0.6rem;
+  justify-content: center;
+}
+
+.swal2-popup .swal2-styled:focus-visible {
+  outline: 3px solid rgba(14, 116, 144, 0.28);
+  outline-offset: 2px;
+}
+
+.swal2-popup .swal-cancel-btn,
+.swal2-popup .swal-confirm-btn {
+  min-width: 132px;
+  height: 42px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0 1rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
+  transition: transform 0.14s ease, box-shadow 0.2s ease, opacity 0.18s ease;
+}
+
+.swal2-popup .swal-cancel-btn {
+  background: #e5e7eb;
+  color: #1f2937;
+}
+
+.swal2-popup .swal-cancel-btn:hover {
+  background: #d1d5db;
+  transform: translateY(-1px);
+}
+
+.swal2-popup .swal-confirm-btn {
+  background: linear-gradient(135deg, #c62828, #b91c1c);
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(185, 28, 28, 0.24);
+}
+
+.swal2-popup .swal-confirm-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(185, 28, 28, 0.32);
+}
+
+.swal2-popup .swal-confirm-btn:active,
+.swal2-popup .swal-cancel-btn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 560px) {
+  .swal2-popup.swal-custom-popup {
+    padding: 1.2rem 1rem 1rem;
+  }
+
+  .swal2-title.swal-custom-title {
+    font-size: 1.65rem;
+  }
+
+  .swal2-html-container.swal-custom-text {
+    font-size: 1rem;
+  }
+
+  .swal2-popup .swal2-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .swal2-popup .swal-cancel-btn,
+  .swal2-popup .swal-confirm-btn {
+    width: 100%;
+  }
+}
