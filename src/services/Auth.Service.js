@@ -45,7 +45,7 @@ export default {
   /**
    * Inicia sesión con correo y contraseña.
    * El backend responde JSON directamente (200 éxito / 401 fallo)
-   * POST /process-login (form-urlencoded para Spring Security)
+   * POST /api/process-login (form-urlencoded para Spring Security)
    */
   async login(correoElectronico, clave) {
     try {

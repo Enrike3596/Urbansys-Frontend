@@ -6,6 +6,7 @@ import { useRouter } from 'vue-router'
  */
 
 const API_URL = '/api'
+const RAW_ENDPOINTS = ['/logout']
 let router = null
 
 // Inyectar router cuando esté disponible (en main.js)
@@ -43,7 +44,8 @@ function getErrorRouteName(statusCode) {
  * @returns {Promise<Response|null>}
  */
 export async function apiFetch(endpoint, options = {}, skipErrorRedirect = false) {
-  const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`
+  const useRawEndpoint = RAW_ENDPOINTS.some(rawEndpoint => endpoint.startsWith(rawEndpoint))
+  const url = endpoint.startsWith('http') || useRawEndpoint ? endpoint : `${API_URL}${endpoint}`
   const fetchOptions = {
     credentials: 'include',
     ...options,
