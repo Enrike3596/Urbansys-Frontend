@@ -108,15 +108,13 @@ const logout = async () => {
 
 
 .sidebar {
-  /* flex-child: ancho fijo de 260px, nunca crece ni encoge */
   flex: 0 0 260px;
   width: 260px;
   height: 100vh;
-  /* SIN position: fixed */
   display: flex;
   flex-direction: column;
-  background: #ffffff;
-  border-right: 1px solid #e9eef4;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border-color);
   font-family: 'Plus Jakarta Sans', sans-serif;
   z-index: 50;
   overflow: hidden;
@@ -136,7 +134,7 @@ const logout = async () => {
   align-items: center;
   justify-content: center;
   padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--border-light);
   flex-shrink: 0;
   min-height: 80px;
   overflow: hidden;
@@ -184,15 +182,15 @@ const logout = async () => {
   border: none; border-radius: 0.625rem; background: transparent;
   cursor: pointer;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 0.875rem; font-weight: 600; color: #64748b;
+  font-size: 0.875rem; font-weight: 600; color: var(--text-secondary);
   text-align: left;
   transition: background 0.15s, color 0.15s;
   position: relative;
 }
-.nav-item:hover         { background: #f1f5f9; color: #00355f; }
-.nav-item.active        { background: rgba(0, 53, 95, 0.07); color: #00355f; font-weight: 700; }
-.nav-item.danger        { color: #ba1a1a; }
-.nav-item.danger:hover  { background: #fff0f0; color: #ba1a1a; }
+.nav-item:hover         { background: var(--bg-surface-hover); color: var(--text-heading); }
+.nav-item.active        { background: color-mix(in srgb, var(--primary-dark) 7%, transparent); color: var(--text-heading); font-weight: 700; }
+.nav-item.danger        { color: var(--danger); }
+.nav-item.danger:hover  { background: var(--bg-danger); color: var(--danger); }
 
 .nav-icon {
   font-size: 20px; flex-shrink: 0;
@@ -203,13 +201,13 @@ const logout = async () => {
 
 .active-dot {
   width: 6px; height: 6px; border-radius: 50%;
-  background: #0f4c81; flex-shrink: 0;
+  background: var(--primary); flex-shrink: 0;
 }
 
 /* ── Footer ── */
 .sidebar-footer {
   padding: 0.875rem;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--border-light);
   display: flex; flex-direction: column; gap: 2px;
   flex-shrink: 0;
 }

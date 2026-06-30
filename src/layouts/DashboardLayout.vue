@@ -69,8 +69,8 @@ onBeforeUnmount(() => {
   display: flex;
   width: 100vw;
   height: 100vh;
-  overflow: hidden;   /* evita scroll en body */
-  background: #eef1f6;
+  overflow: hidden;
+  background: var(--bg-page);
 }
 
 /* ── Columna principal ── */
@@ -86,10 +86,10 @@ onBeforeUnmount(() => {
 /* ── Área de contenido ── */
 .page-content {
   flex: 1;
-  overflow-y: auto;   /* único scroll de la página */
+  overflow-y: auto;
   overflow-x: hidden;
   padding: 2rem 2.5rem;
-  background: #eef1f6;
+  background: var(--bg-page);
 }
 
 @media (max-width: 992px) {
