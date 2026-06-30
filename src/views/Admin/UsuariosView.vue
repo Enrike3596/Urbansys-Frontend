@@ -396,7 +396,6 @@ onMounted(() => {
                 <th>Contacto</th>
                 <th>Rol</th>
                 <th>Estado</th>
-                <th>Último Acceso</th>
                 <th class="text-right">Acciones</th>
               </tr>
             </thead>
@@ -415,7 +414,6 @@ onMounted(() => {
                     </div>
                     <div class="u-info">
                       <p class="u-name">{{ fullName(u) }}</p>
-                      <p class="u-email">{{ u.email }}</p>
                     </div>
                   </div>
                 </td>
@@ -449,9 +447,7 @@ onMounted(() => {
                   </span>
                 </td>
 
-                <!-- Último acceso -->
-                <td><span class="td-access">{{ u.ultimoAcceso }}</span></td>
-
+                
                 <!-- Acciones -->
                 <td class="text-right">
                   <div class="actions-row">
@@ -573,10 +569,6 @@ onMounted(() => {
                 <div class="detail-item">
                   <span class="detail-label">Teléfono</span>
                   <span class="detail-value">{{ selectedUser.telefono }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Último Acceso</span>
-                  <span class="detail-value">{{ selectedUser.ultimoAcceso }}</span>
                 </div>
               </div>
 
