@@ -25,6 +25,10 @@ function toFrontendResidente(dto) {
 		id: dto.idResidente,
 		idResidente: dto.idResidente,
 		usuarioId: dto.usuarioId ?? null,
+		usuarioNombre: dto.usuarioNombre ?? '',
+		usuarioApellido: dto.usuarioApellido ?? '',
+		nombre: dto.nombre ?? '',
+		apellido: dto.apellido ?? '',
 		apartamentoId: dto.apartamentoId ?? null,
 		torreId: dto.torreId ?? null,
 		tieneHijos: Boolean(dto.tieneHijos),
@@ -44,6 +48,8 @@ function toBackendPayload(form) {
 	const tieneMascota = Boolean(form?.tieneMascota)
 
 	return {
+		nombre: form?.nombre?.trim() || '',
+		apellido: form?.apellido?.trim() || '',
 		usuarioId: toNumberOrNull(form?.usuarioId),
 		apartamentoId: toNumberOrNull(form?.apartamentoId),
 		torreId: toNumberOrNull(form?.torreId),

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import UsuarioService from '../../services/Usuario.Service';
+import ResidenteService from '@/services/Residente.Service';
 import CorreoMasivoService from '../../services/CorreoMasivo.Service';
 import { swalConfirmAction, swalConfirmDelete, swalError, swalSuccess } from '@/utils/sweetalert';
 
@@ -25,8 +26,13 @@ const emptyForm = () => ({
   id: '', nombre: '', apellido: '', email: '', identificacion: '',
   telefono: '', rol: '', estado: 'activo',
   claveHash: '', ultimoAcceso: '', permisos: [],
+  residenteId: null,
 });
 const form = ref(emptyForm());
+const residentes = ref([]);
+const residenteSearch = ref('');
+const activeAutocomplete = ref('');
+const autocompleteCloseTimer = ref(null);
 const showEmailModal = ref(false);
 const isSendingMassEmail = ref(false);
 const emailForm = ref({
@@ -98,15 +104,69 @@ const destinatariosCorreoMasivo = computed(() =>
   usuarios.value.filter(u => u.estado === 'activo' && isEmailValido(u.email))
 );
 
+const getResidenteNombreCompleto = (r) => {
+  if (r.nombre || r.apellido) return (r.nombre + ' ' + (r.apellido || '')).trim()
+  if (r.usuarioNombre || r.usuarioApellido) return (r.usuarioNombre + ' ' + (r.usuarioApellido || '')).trim()
+  return 'Residente ' + r.idResidente
+}
+
+const filteredResidentes = computed(() => {
+  const term = residenteSearch.value.trim().toLowerCase()
+  return residentes.value
+    .filter((r) => {
+      if (!term) return true
+      const full = getResidenteNombreCompleto(r).toLowerCase()
+      return full.includes(term)
+    })
+    .slice(0, 8)
+})
+
+const selectResidente = (residente) => {
+  form.value.residenteId = residente.idResidente
+  form.value.nombre = residente.nombre || residente.usuarioNombre || ''
+  form.value.apellido = residente.apellido || residente.usuarioApellido || ''
+  residenteSearch.value = getResidenteNombreCompleto(residente)
+  activeAutocomplete.value = ''
+}
+
+const onResidenteInput = () => {
+  form.value.residenteId = null
+}
+
+const clearAutocompleteUsr = () => {
+  if (autocompleteCloseTimer.value) {
+    clearTimeout(autocompleteCloseTimer.value)
+  }
+  autocompleteCloseTimer.value = setTimeout(() => {
+    activeAutocomplete.value = ''
+    autocompleteCloseTimer.value = null
+  }, 180)
+}
+
+const openAutocompleteUsr = (field) => {
+  if (autocompleteCloseTimer.value) {
+    clearTimeout(autocompleteCloseTimer.value)
+    autocompleteCloseTimer.value = null
+  }
+  activeAutocomplete.value = field
+}
+
 /* ── CRUD ── */
-const openCrear   = () => { formError.value = ''; form.value = emptyForm(); modalMode.value = 'crear'; showModal.value = true; };
-const openEditar  = (u) => { formError.value = ''; form.value = {...u, claveHash: ''}; modalMode.value = 'editar'; showModal.value = true; };
+const openCrear   = () => { formError.value = ''; form.value = emptyForm(); residenteSearch.value = ''; modalMode.value = 'crear'; showModal.value = true; };
+const openEditar  = (u) => {
+  formError.value = ''
+  form.value = {...u, claveHash: '', residenteId: u.residenteId ?? null}
+  const res = residentes.value.find(r => r.idResidente === u.residenteId)
+  residenteSearch.value = res ? getResidenteNombreCompleto(res) : ''
+  modalMode.value = 'editar'
+  showModal.value = true
+};
 const openVer     = (u) => { selectedUser.value = u; modalMode.value = 'ver'; showModal.value = true; };
 const closeModal  = () => { showModal.value = false; formError.value = ''; };
 
 const validarFormulario = () => {
-  if (!form.value.nombre?.trim()) return 'El nombre es obligatorio.';
-  if (!form.value.apellido?.trim()) return 'El apellido es obligatorio.';
+  if (!form.value.nombre?.trim() && !form.value.residenteId) return 'El nombre es obligatorio o selecciona un residente.';
+  if (!form.value.apellido?.trim() && !form.value.residenteId) return 'El apellido es obligatorio o selecciona un residente.';
   if (!form.value.email?.trim()) return 'El correo electrónico es obligatorio.';
   if (!form.value.identificacion?.trim()) return 'La identificación es obligatoria.';
   if (modalMode.value === 'crear' && !form.value.claveHash?.trim()) return 'La contraseña temporal es obligatoria.';
@@ -116,9 +176,14 @@ const validarFormulario = () => {
 const cargarUsuarios = async () => {
   isLoadingUsers.value = true;
   try {
-    usuarios.value = await UsuarioService.listar();
+    const [usuariosData, residentesData] = await Promise.all([
+      UsuarioService.listar(),
+      ResidenteService.listar(),
+    ])
+    usuarios.value = Array.isArray(usuariosData) ? usuariosData : []
+    residentes.value = Array.isArray(residentesData) ? residentesData : []
   } catch (error) {
-    console.error('Error cargando usuarios:', error);
+    console.error('Error cargando datos:', error);
   } finally {
     isLoadingUsers.value = false;
   }
@@ -394,6 +459,7 @@ onMounted(() => {
                 <th>Nombre Completo</th>
                 <th>Identificación</th>
                 <th>Contacto</th>
+                <th>Residente</th>
                 <th>Rol</th>
                 <th>Estado</th>
                 <th class="text-right">Acciones</th>
@@ -423,6 +489,15 @@ onMounted(() => {
 
                 <!-- Contacto -->
                 <td><span class="td-tel">{{ u.telefono }}</span></td>
+
+                <!-- Residente -->
+                <td>
+                  <span v-if="u.residenteId" class="residente-badge" :class="u.residenteTipoResidente === 'PROPIETARIO' ? 'propietario' : 'arrendatario'">
+                    <span class="icon">apartment</span>
+                    {{ u.residenteTipoResidente === 'PROPIETARIO' ? 'Propietario' : u.residenteTipoResidente === 'ARRENDATARIO' ? 'Arrendatario' : 'Residente' }}
+                  </span>
+                  <span v-else class="no-residente">-</span>
+                </td>
 
                 <!-- Rol -->
                 <td>
@@ -476,7 +551,7 @@ onMounted(() => {
               </tr>
 
               <tr v-if="paginated.length === 0">
-                <td colspan="7" class="empty-state">
+                <td colspan="8" class="empty-state">
                   <span class="icon empty-icon">manage_search</span>
                   <p>{{ isLoadingUsers ? 'Cargando usuarios...' : 'No se encontraron usuarios con los filtros aplicados.' }}</p>
                 </td>
@@ -598,20 +673,37 @@ onMounted(() => {
             <!-- ── Crear / Editar ── -->
             <div v-else-if="modalMode!=='ver'" class="modal-body">
               <div class="form-grid">
-                <div class="form-field">
-                  <label class="form-label">Nombre</label>
-                  <div class="form-input-wrap">
-                    <span class="form-icon icon">person</span>
-                    <input v-model="form.nombre" class="form-input" placeholder="Ej. Juan"/>
+                <div class="form-field autocomplete-field full">
+                  <label class="form-label">Usuario (Residente)</label>
+                  <div class="form-input-wrap autocomplete-wrap">
+                    <span class="form-icon icon">person_search</span>
+                    <input
+                      v-model="residenteSearch"
+                      class="form-input"
+                      type="text"
+                      placeholder="Buscar residente por nombre..."
+                      @focus="openAutocompleteUsr('residente')"
+                      @blur="clearAutocompleteUsr"
+                      @input="onResidenteInput"
+                    />
+                    <div v-if="activeAutocomplete === 'residente' && filteredResidentes.length > 0" class="autocomplete-dropdown">
+                      <div
+                        v-for="r in filteredResidentes"
+                        :key="r.idResidente"
+                        class="autocomplete-item"
+                        @click="selectResidente(r)"
+                      >
+                        {{ getResidenteNombreCompleto(r) }}
+                      </div>
+                    </div>
+                  </div>
+                  <div v-if="form.residenteId && form.nombre" class="residente-selected-info">
+                    <span class="icon">check_circle</span>
+                    {{ form.nombre }} {{ form.apellido }}
                   </div>
                 </div>
-                <div class="form-field">
-                  <label class="form-label">Apellido</label>
-                  <div class="form-input-wrap">
-                    <span class="form-icon icon">badge</span>
-                    <input v-model="form.apellido" class="form-input" placeholder="Ej. Pérez"/>
-                  </div>
-                </div>
+                <input v-model="form.nombre" type="hidden" />
+                <input v-model="form.apellido" type="hidden" />
                 <div class="form-field">
                   <label class="form-label">Correo Electrónico</label>
                   <div class="form-input-wrap">
@@ -924,6 +1016,15 @@ onMounted(() => {
 .rol-icon     { font-size:13px; font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
 .estado-badge { display:inline-flex; align-items:center; gap:.375rem; padding:.25rem .75rem; border-radius:99px; font-size:.625rem; font-weight:800; }
 .estado-dot   { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.residente-badge {
+  display:inline-flex; align-items:center; gap:.35rem;
+  padding:.25rem .75rem; border-radius:99px; font-size:.625rem; font-weight:800;
+  border:1px solid transparent; white-space:nowrap;
+}
+.residente-badge.propietario { background:#dbeafe; color:#1e40af; border-color:#bfdbfe; }
+.residente-badge.arrendatario { background:#cbe7f5; color:#304a55; border-color:#b0d4e8; }
+.residente-badge .icon { font-size:13px; font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24; }
+.no-residente { color:#94a3b8; font-weight:600; font-size:.8rem; }
 
 /* Acciones */
 .actions-row { display:flex; align-items:center; justify-content:flex-end; gap:2px; }
@@ -1012,6 +1113,27 @@ onMounted(() => {
 .form-textarea { min-height:170px; resize:vertical; padding-left:2.5rem; }
 .form-input::placeholder { color:#b0bac5; }
 .form-input:focus { outline:none; background:#fff; border-color:#0f4c81; box-shadow:0 0 0 3px rgba(15,76,129,.12); }
+.autocomplete-field { position:relative; }
+.autocomplete-wrap { position:relative; }
+.autocomplete-dropdown {
+  position:absolute; top:100%; left:0; right:0; z-index:50;
+  background:#fff; border:1px solid #e2e8f0; border-radius:.75rem;
+  box-shadow:0 6px 20px rgba(0,0,0,.1); max-height:220px; overflow-y:auto;
+  margin-top:4px;
+}
+.autocomplete-item {
+  padding:.65rem 1rem; font-size:.8125rem; color:#334155; cursor:pointer;
+  transition:background .1s; border-bottom:1px solid #f8fafc;
+}
+.autocomplete-item:last-child { border-bottom:none; }
+.autocomplete-item:hover { background:#f1f5f9; color:#00355f; }
+.residente-selected-info {
+  display:flex; align-items:center; gap:.5rem;
+  margin-top:.5rem; padding:.4rem .75rem;
+  background:#d1fae5; color:#065f46;
+  border-radius:.625rem; font-size:.775rem; font-weight:600;
+}
+.residente-selected-info .icon { font-size:16px; color:#27ae60; }
 
 /* Security notice */
 .security-notice { display:flex; align-items:flex-start; gap:.625rem; background:rgba(15,76,129,.05); border:1px solid rgba(15,76,129,.12); border-radius:.75rem; padding:.75rem 1rem; margin-bottom:1.125rem; }
@@ -1106,9 +1228,9 @@ onMounted(() => {
   .data-row td:nth-child(1)::before { content:'Nombre'; }
   .data-row td:nth-child(2)::before { content:'Identificacion'; }
   .data-row td:nth-child(3)::before { content:'Contacto'; }
-  .data-row td:nth-child(4)::before { content:'Rol'; }
-  .data-row td:nth-child(5)::before { content:'Estado'; }
-  .data-row td:nth-child(6)::before { content:'Ultimo acceso'; }
+  .data-row td:nth-child(4)::before { content:'Residente'; }
+  .data-row td:nth-child(5)::before { content:'Rol'; }
+  .data-row td:nth-child(6)::before { content:'Estado'; }
   .data-row td:nth-child(7)::before { content:'Acciones'; }
   .data-row td:last-child { border-bottom:none; }
   .data-row td.text-right { text-align:left; }

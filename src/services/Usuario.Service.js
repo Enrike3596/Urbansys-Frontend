@@ -45,6 +45,8 @@ function toFrontendUser(dto) {
     rol: BACK_TO_FRONT_ROLE[dto.rol] || 'residente',
     estado: 'activo',
     ultimoAcceso: 'Sin registro',
+    residenteId: dto.residenteId ?? null,
+    residenteTipoResidente: dto.residenteTipoResidente ?? null,
   }
 }
 
@@ -60,6 +62,10 @@ function toBackendPayload(form, includePassword = true) {
 
   if (includePassword && form.claveHash?.trim()) {
     payload.claveHash = form.claveHash
+  }
+
+  if (form.residenteId) {
+    payload.residenteId = form.residenteId
   }
 
   return payload

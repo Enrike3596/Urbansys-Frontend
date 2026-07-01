@@ -2,7 +2,6 @@
 import { computed, onMounted, ref } from 'vue'
 import * as XLSX from 'xlsx'
 import ResidenteService from '@/services/Residente.Service'
-import UsuarioService from '@/services/Usuario.Service'
 import ApartamentoService from '@/services/Apartamento.Service'
 import TorreService from '@/services/Torre.Service'
 import HijoService from '@/services/Hijo.Service'
@@ -28,7 +27,6 @@ const activeAutocomplete = ref('')
 const autocompleteCloseTimer = ref(null)
 const torreSearch = ref('')
 const apartamentoSearch = ref('')
-const usuarioSearch = ref('')
 const bulkFile = ref(null)
 const bulkRows = ref([])
 const bulkPreviewRows = ref([])
@@ -79,7 +77,8 @@ const BULK_REQUIRED_USER_HEADERS = ['nombreUsuario', 'apellidoUsuario', 'identif
 
 const emptyForm = () => ({
   idResidente: null,
-  usuarioId: '',
+  nombre: '',
+  apellido: '',
   apartamentoId: '',
   torreId: '',
   tipoResidente: 'propietario',
@@ -90,7 +89,6 @@ const hijos = ref([])
 const mascotas = ref([])
 
 const residentes = ref([])
-const usuarios = ref([])
 const apartamentos = ref([])
 const torres = ref([])
 
@@ -109,18 +107,14 @@ const metrics = computed(() => {
   return { total, propietarios, arrendatarios, conHijos, conMascota }
 })
 
-const usuariosIndex = computed(() => new Map(usuarios.value.map((usuario) => [Number(usuario.id), usuario])) )
 const apartamentosIndex = computed(() => new Map(apartamentos.value.map((apt) => [Number(apt.idApartamento), apt])) )
 const torresIndex = computed(() => new Map(torres.value.map((torre) => [Number(torre.idTorre ?? torre.id), torre])) )
 
 function getUsuarioNombre(item) {
   if (!item) return '-'
-
-  if (item.usuarioNombre) return item.usuarioNombre
-
-  const usuario = usuariosIndex.value.get(Number(item.usuarioId))
-  const nombreCompleto = [usuario?.nombre, usuario?.apellido].filter(Boolean).join(' ').trim()
-  return nombreCompleto || '-'
+  if (item.nombre) return (item.nombre + ' ' + (item.apellido || '')).trim()
+  if (item.usuarioNombre) return item.usuarioNombre + ' ' + (item.usuarioApellido || '')
+  return '-'
 }
 
 function getApartamentoNumero(item) {
@@ -150,10 +144,6 @@ function getApartamentoLabel(apartamento) {
   return apartamento.numeroApartamento || apartamento.numero || 'Sin numero'
 }
 
-function getUsuarioLabel(usuario) {
-  return [usuario?.nombre, usuario?.apellido].filter(Boolean).join(' ').trim() || `Usuario ${usuario?.id}`
-}
-
 function getApartamentoTorreId(apartamento) {
   if (!apartamento) return null
   const raw = apartamento.torreId ?? apartamento.idTorre
@@ -181,7 +171,7 @@ const filtered = computed(() => {
 
     const mascotaInfo = (item.mascotas && item.mascotas.length > 0) ? item.mascotas[0].tipo || '' : ''
     return (
-      getUsuarioNombre(item).toLowerCase().includes(term)
+      (item.nombre || getUsuarioNombre(item)).toLowerCase().includes(term)
       || String(getApartamentoNumero(item)).toLowerCase().includes(term)
       || String(getTorreNombre(item)).toLowerCase().includes(term)
       || (item.tipoResidente || '').toLowerCase().includes(term)
@@ -219,20 +209,6 @@ const filteredApartamentos = computed(() => {
     .slice(0, 8)
 })
 
-const filteredUsuarios = computed(() => {
-  const selectedApartamentoId = toNumberOrNull(form.value.apartamentoId)
-  const term = usuarioSearch.value.trim().toLowerCase()
-  return usuarios.value
-    .filter((usuario) => {
-      if (!term) return true
-      const nombre = String(usuario.nombre ?? '').toLowerCase()
-      const apellido = String(usuario.apellido ?? '').toLowerCase()
-      const label = getUsuarioLabel(usuario).toLowerCase()
-      return nombre.includes(term) || apellido.includes(term) || label.includes(term)
-    })
-    .slice(0, 8)
-})
-
 const clearAutocomplete = () => {
   if (autocompleteCloseTimer.value) {
     clearTimeout(autocompleteCloseTimer.value)
@@ -253,46 +229,19 @@ const openAutocomplete = (field) => {
   activeAutocomplete.value = field
 }
 
-const selectTorre = (torre) => {
-  form.value.torreId = Number(torre.idTorre ?? torre.id)
-  torreSearch.value = getTorreLabel(torre)
-  form.value.apartamentoId = null
-  apartamentoSearch.value = ''
-  form.value.usuarioId = null
-  usuarioSearch.value = ''
-  activeAutocomplete.value = ''
-}
-
 const selectApartamento = (apartamento) => {
   form.value.apartamentoId = Number(apartamento.idApartamento)
   apartamentoSearch.value = getApartamentoLabel(apartamento)
-  form.value.usuarioId = null
-  usuarioSearch.value = ''
   activeAutocomplete.value = ''
 }
 
-const selectUsuario = (usuario) => {
-  form.value.usuarioId = Number(usuario.id)
-  usuarioSearch.value = getUsuarioLabel(usuario)
-  activeAutocomplete.value = ''
-}
-
-const onTorreInput = () => {
-  form.value.torreId = null
+const onTorreChange = () => {
   form.value.apartamentoId = null
   apartamentoSearch.value = ''
-  form.value.usuarioId = null
-  usuarioSearch.value = ''
 }
 
 const onApartamentoInput = () => {
   form.value.apartamentoId = null
-  form.value.usuarioId = null
-  usuarioSearch.value = ''
-}
-
-const onUsuarioInput = () => {
-  form.value.usuarioId = null
 }
 
 const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / perPage)))
@@ -355,7 +304,6 @@ function openCrear() {
   selectedResidenteMascotas.value = []
   torreSearch.value = ''
   apartamentoSearch.value = ''
-  usuarioSearch.value = ''
   if (autocompleteCloseTimer.value) {
     clearTimeout(autocompleteCloseTimer.value)
     autocompleteCloseTimer.value = null
@@ -698,10 +646,8 @@ async function openEditar(item) {
 
   const torre = torresIndex.value.get(Number(item.torreId))
   const apartamento = apartamentosIndex.value.get(Number(item.apartamentoId))
-  const usuario = usuariosIndex.value.get(Number(item.usuarioId))
   torreSearch.value = torre ? getTorreLabel(torre) : ''
   apartamentoSearch.value = apartamento ? getApartamentoLabel(apartamento) : ''
-  usuarioSearch.value = usuario ? getUsuarioLabel(usuario) : ''
   modalMode.value = 'editar'
   showModal.value = true
 }
@@ -779,17 +725,14 @@ async function cargarResidentes() {
 
 async function cargarCatalogos() {
   try {
-    const [usuariosData, apartamentosData, torresData] = await Promise.all([
-      UsuarioService.listar(),
+    const [apartamentosData, torresData] = await Promise.all([
       ApartamentoService.listar(),
       TorreService.listar(),
     ])
 
-    usuarios.value = Array.isArray(usuariosData) ? usuariosData : []
     apartamentos.value = Array.isArray(apartamentosData) ? apartamentosData : []
     torres.value = Array.isArray(torresData) ? torresData : []
   } catch (error) {
-    usuarios.value = []
     apartamentos.value = []
     torres.value = []
     console.error('No fue posible cargar catalogos de residentes:', error)
@@ -797,16 +740,27 @@ async function cargarCatalogos() {
 }
 
 async function guardar() {
+  const nombre = form.value.nombre?.trim()
+  const apellido = form.value.apellido?.trim()
+
+  if (!nombre || !apellido) {
+    errorMessage.value = 'Nombre, apellido, apartamento, torre y tipo de residente son obligatorios.'
+    await swalError(errorMessage.value)
+    return
+  }
+
   const payload = {
     idResidente: form.value.idResidente,
-    usuarioId: toNumberOrNull(form.value.usuarioId),
+    nombre,
+    apellido,
+    usuarioId: null,
     apartamentoId: toNumberOrNull(form.value.apartamentoId),
     torreId: toNumberOrNull(form.value.torreId),
     tipoResidente: (form.value.tipoResidente || '').toLowerCase(),
   }
 
-  if (!payload.usuarioId || !payload.apartamentoId || !payload.torreId || !payload.tipoResidente) {
-    errorMessage.value = 'Usuario, apartamento, torre y tipo de residente son obligatorios.'
+  if (!payload.apartamentoId || !payload.torreId || !payload.tipoResidente) {
+    errorMessage.value = 'Nombre, apellido, apartamento, torre y tipo de residente son obligatorios.'
     await swalError(errorMessage.value)
     return
   }
@@ -1255,29 +1209,44 @@ onMounted(async () => {
 
             <div v-else class="modal-body">
               <div class="form-grid">
-                <div class="form-field autocomplete-field">
-                  <label class="form-label">Torre</label>
-                  <div class="form-input-wrap autocomplete-wrap">
-                    <span class="form-icon icon">domain</span>
+                <div class="form-field">
+                  <label class="form-label">Nombre</label>
+                  <div class="form-input-wrap">
+                    <span class="form-icon icon">person</span>
                     <input
-                      v-model="torreSearch"
+                      v-model="form.nombre"
                       class="form-input"
                       type="text"
-                      placeholder="Buscar torre..."
-                      @focus="openAutocomplete('torre')"
-                      @blur="clearAutocomplete"
-                      @input="onTorreInput"
+                      placeholder="Nombre del residente"
                     />
-                    <div v-if="activeAutocomplete === 'torre' && filteredTorres.length > 0" class="autocomplete-dropdown">
-                      <div
-                        v-for="torre in filteredTorres"
+                  </div>
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Apellido</label>
+                  <div class="form-input-wrap">
+                    <span class="form-icon icon">badge</span>
+                    <input
+                      v-model="form.apellido"
+                      class="form-input"
+                      type="text"
+                      placeholder="Apellido del residente"
+                    />
+                  </div>
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Torre</label>
+                  <div class="form-input-wrap">
+                    <span class="form-icon icon">domain</span>
+                    <select v-model.number="form.torreId" class="form-input" @change="onTorreChange">
+                      <option value="">Selecciona una torre</option>
+                      <option
+                        v-for="torre in torres"
                         :key="torre.idTorre ?? torre.id"
-                        class="autocomplete-item"
-                        @click="selectTorre(torre)"
+                        :value="torre.idTorre ?? torre.id"
                       >
                         {{ getTorreLabel(torre) }}
-                      </div>
-                    </div>
+                      </option>
+                    </select>
                   </div>
                 </div>
 
@@ -1303,33 +1272,6 @@ onMounted(async () => {
                         @click="selectApartamento(apartamento)"
                       >
                         {{ getApartamentoLabel(apartamento) }}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="form-field autocomplete-field">
-                  <label class="form-label">Usuario</label>
-                  <div class="form-input-wrap autocomplete-wrap">
-                    <span class="form-icon icon">badge</span>
-                    <input
-                      v-model="usuarioSearch"
-                      class="form-input"
-                      type="text"
-                      placeholder="Selecciona apartamento primero..."
-                      :disabled="!form.apartamentoId"
-                      @focus="openAutocomplete('usuario')"
-                      @blur="clearAutocomplete"
-                      @input="onUsuarioInput"
-                    />
-                    <div v-if="activeAutocomplete === 'usuario' && filteredUsuarios.length > 0" class="autocomplete-dropdown">
-                      <div
-                        v-for="usuario in filteredUsuarios"
-                        :key="usuario.id"
-                        class="autocomplete-item"
-                        @click="selectUsuario(usuario)"
-                      >
-                        {{ getUsuarioLabel(usuario) }}
                       </div>
                     </div>
                   </div>
