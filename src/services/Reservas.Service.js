@@ -32,6 +32,7 @@ function toFrontendReserva(dto) {
 		horaInicio: dto.horaInicio || '',
 		horaFin: dto.horaFin || '',
 		estado: normalizeEstado(dto.estado),
+		motivoCancelacion: dto.motivoCancelacion || '',
 	}
 }
 
@@ -45,6 +46,7 @@ function toBackendPayload(form) {
 		horaInicio: form?.horaInicio?.trim() || null,
 		horaFin: form?.horaFin?.trim() || null,
 		estado: form?.estado ? String(form.estado).toUpperCase() : null,
+		motivoCancelacion: form?.motivoCancelacion?.trim() || '',
 	}
 }
 
@@ -102,6 +104,16 @@ export default {
 		}
 
 		const data = await apiGet(`/reservas-salon/buscar-por-usuario?idUsuario=${id}`, true)
+		return toFrontendReserva(data)
+	},
+
+	async confirmar(id) {
+		const data = await apiPut(`/reservas-salon/${id}/confirmar`, {}, true)
+		return toFrontendReserva(data)
+	},
+
+	async rechazar(id, motivoRechazo) {
+		const data = await apiPut(`/reservas-salon/${id}/rechazar`, { motivoRechazo }, true)
 		return toFrontendReserva(data)
 	},
 

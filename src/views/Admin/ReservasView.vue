@@ -6,7 +6,8 @@ import ApartamentoService from '@/services/Apartamento.Service'
 import ResidenteService from '@/services/Residente.Service'
 import UsuarioService from '@/services/Usuario.Service'
 import TorreService from '@/services/Torre.Service'
-import { swalConfirmDelete, swalError, swalSuccess } from '@/utils/sweetalert'
+import { swalConfirmDelete, swalError, swalSuccess, swalConfirmAction } from '@/utils/sweetalert'
+import Swal from 'sweetalert2'
 
 const searchQuery = ref('')
 const filterEstado = ref('todos')
@@ -44,6 +45,7 @@ const emptyForm = () => ({
   horaInicio: '',
   horaFin: '',
   estado: 'pendiente',
+  motivoCancelacion: '',
 })
 
 const form = ref(emptyForm())
@@ -462,6 +464,7 @@ async function guardar() {
     horaInicio: form.value.horaInicio,
     horaFin: form.value.horaFin,
     estado: form.value.estado,
+    motivoCancelacion: form.value.motivoCancelacion,
   }
 
   if (!payload.salonComunalId || !payload.residenteId || !payload.fecha || !payload.horaInicio || !payload.horaFin) {
@@ -507,6 +510,43 @@ async function eliminar(idReservaSalon) {
     errorMessage.value = error?.message || 'No fue posible eliminar la reserva.'
     await swalError(errorMessage.value)
   }
+}
+
+async function cambiarEstado(item, nuevoEstado) {
+  if (nuevoEstado === 'confirmada') {
+    const confirmResult = await swalConfirmAction({
+      title: '¿Confirmar reserva?',
+      text: 'La reserva quedará confirmada y no podrá modificarse desde el residente.',
+      confirmButtonText: 'Sí, confirmar',
+      icon: 'success',
+    })
+    if (!confirmResult.isConfirmed) return
+    await ReservasService.confirmar(item.idReservaSalon)
+  } else if (nuevoEstado === 'cancelada') {
+    const { value: motivo, isConfirmed } = await Swal.fire({
+      title: 'Motivo de cancelación',
+      input: 'textarea',
+      inputPlaceholder: 'Describe el motivo de la cancelación...',
+      inputAttributes: { required: 'required' },
+      showCancelButton: true,
+      confirmButtonText: 'Cancelar reserva',
+      cancelButtonText: 'Volver',
+      confirmButtonColor: '#ba1a1a',
+      cancelButtonColor: '#64748b',
+      reverseButtons: true,
+      preConfirm: (val) => {
+        if (!val || !val.trim()) {
+          Swal.showValidationMessage('El motivo es obligatorio')
+          return false
+        }
+        return val.trim()
+      },
+    })
+    if (!isConfirmed) return
+    await ReservasService.rechazar(item.idReservaSalon, motivo)
+  }
+  await cargarReservas()
+  swalSuccess(nuevoEstado === 'confirmada' ? 'Reserva confirmada correctamente.' : 'Reserva cancelada correctamente.')
 }
 
 function goPage(page) {
@@ -624,10 +664,18 @@ onMounted(() => {
               </td>
               <td class="text-right">
                 <div class="actions-row">
+                  <template v-if="item.estado === 'pendiente'">
+                    <button class="action-btn confirm" title="Confirmar" @click="cambiarEstado(item, 'confirmada')">
+                      <span class="icon">check_circle</span>
+                    </button>
+                    <button class="action-btn cancel" title="Cancelar" @click="cambiarEstado(item, 'cancelada')">
+                      <span class="icon">cancel</span>
+                    </button>
+                  </template>
                   <button class="action-btn view" title="Ver" @click="openVer(item)">
                     <span class="icon">visibility</span>
                   </button>
-                  <button class="action-btn edit" title="Editar" @click="openEditar(item)">
+                  <button class="action-btn edit" title="Editar" @click="openEditar(item)" :disabled="item.estado !== 'pendiente'">
                     <span class="icon">edit</span>
                   </button>
                   <button class="action-btn delete" title="Eliminar" @click="eliminar(item.idReservaSalon)">
@@ -691,11 +739,15 @@ onMounted(() => {
                 <div class="detail-item"><span class="detail-label">Hora inicio</span><p class="detail-value">{{ selectedReserva.horaInicio }}</p></div>
                 <div class="detail-item"><span class="detail-label">Hora fin</span><p class="detail-value">{{ selectedReserva.horaFin }}</p></div>
                 <div class="detail-item full"><span class="detail-label">Estado</span><p class="detail-value">{{ estadoConfig[selectedReserva.estado]?.label || selectedReserva.estado }}</p></div>
+                <div v-if="selectedReserva.estado === 'cancelada' && selectedReserva.motivoCancelacion" class="detail-item full">
+                  <span class="detail-label">Motivo de cancelación</span>
+                  <p class="detail-value motivo-text">{{ selectedReserva.motivoCancelacion }}</p>
+                </div>
               </div>
 
               <div class="modal-footer">
                 <button class="btn-secondary" @click="closeModal">Cerrar</button>
-                <button class="btn-primary" @click="openEditar(selectedReserva)">
+                <button v-if="selectedReserva.estado === 'pendiente'" class="btn-primary" @click="openEditar(selectedReserva)">
                   <span class="icon">edit</span>
                   Editar
                 </button>
@@ -927,9 +979,12 @@ onMounted(() => {
 
 .actions-row { display:flex; align-items:center; justify-content:flex-end; gap:2px; }
 .action-btn { width:2rem; height:2rem; display:flex; align-items:center; justify-content:center; background:none; border:none; border-radius:.5rem; cursor:pointer; color:#94a3b8; }
+.action-btn:disabled { opacity:.35; cursor:not-allowed; }
 .action-btn.view:hover { background:rgba(15,76,129,.08); color:#0f4c81; }
-.action-btn.edit:hover { background:rgba(15,76,129,.08); color:#0f4c81; }
+.action-btn.edit:hover:not(:disabled) { background:rgba(15,76,129,.08); color:#0f4c81; }
 .action-btn.delete:hover { background:rgba(186,26,26,.08); color:#ba1a1a; }
+.action-btn.confirm:hover { background:rgba(39,174,96,.08); color:#27ae60; }
+.action-btn.cancel:hover { background:rgba(186,26,26,.08); color:#ba1a1a; }
 
 .empty-state { text-align:center; padding:3rem 1rem; color:#94a3b8; }
 
@@ -957,6 +1012,7 @@ onMounted(() => {
 .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.25rem; }
 .detail-item { display:flex; flex-direction:column; gap:.25rem; }
 .detail-item.full { grid-column:1/-1; }
+.motivo-text { background:#fef3c7; border-radius:.5rem; padding:.5rem .75rem; color:#92400e; font-size:.8125rem; margin:0; }
 .detail-label { display:block; font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#94a3b8; }
 .detail-value { font-size:.9rem; font-weight:700; color:#0d1b2a; margin:0; }
 
