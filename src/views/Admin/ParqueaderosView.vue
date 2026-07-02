@@ -5,6 +5,7 @@ import ApartamentoService from '@/services/Apartamento.Service';
 import ResidenteService from '@/services/Residente.Service';
 import UsuarioService from '@/services/Usuario.Service';
 import TorreService from '@/services/Torre.Service';
+import VehiculoService from '@/services/Vehiculo.Service';
 import { swalConfirmDelete, swalError, swalSuccess } from '@/utils/sweetalert';
 
 /* ── Filtros ── */
@@ -40,9 +41,9 @@ const torres = ref([]);
 const apartamentos = ref([]);
 const residentes = ref([]);
 const usuarios = ref([]);
-const torreSearch = ref('');
 const apartamentoSearch = ref('');
 const residenteSearch = ref('');
+const vehiculos = ref([]);
 
 /* ── Métricas ── */
 const metrics = computed(() => {
@@ -82,6 +83,26 @@ const torresIndex = computed(() => {
   return new Map(torres.value.map((torre) => [Number(torre.idTorre ?? torre.id), torre]));
 });
 
+const vehiculosPorResidente = computed(() => {
+  const map = new Map();
+  for (const v of vehiculos.value) {
+    const id = Number(v.residenteId);
+    if (!map.has(id)) map.set(id, []);
+    map.get(id).push(v);
+  }
+  return map;
+});
+
+const residentePorTorreYApto = computed(() => {
+  const map = new Map();
+  for (const r of residentes.value) {
+    const key = `${r.torreId ?? ''}|${r.apartamentoId ?? ''}`;
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(r);
+  }
+  return map;
+});
+
 const getTorreNombre = (espacio) => {
   if (!espacio) return '-';
 
@@ -114,10 +135,14 @@ const getResidenteNombre = (espacio) => {
   if (espacio.residenteId == null) return '-';
 
   const residente = residentesIndex.value.get(Number(espacio.residenteId));
-  const usuario = residente ? usuariosIndex.value.get(Number(residente.usuarioId)) : null;
-  const nombreCompleto = [usuario?.nombre, usuario?.apellido].filter(Boolean).join(' ').trim();
-
-  return nombreCompleto || '-';
+  if (!residente) return '-';
+  const nombre = residente.nombre || residente.usuarioNombre || '';
+  const apellido = residente.apellido || residente.usuarioApellido || '';
+  const directo = `${nombre} ${apellido}`.trim();
+  if (directo) return directo;
+  const usuario = usuariosIndex.value.get(Number(residente.usuarioId));
+  const fromUsuario = [usuario?.nombre, usuario?.apellido].filter(Boolean).join(' ').trim();
+  return fromUsuario || '-';
 };
 
 const getTorreLabel = (torre) => {
@@ -129,8 +154,15 @@ const getApartamentoLabel = (apartamento) => {
 };
 
 const getResidenteLabel = (residente) => {
+  if (!residente) return '';
+  const nombre = residente.nombre || residente.usuarioNombre || '';
+  const apellido = residente.apellido || residente.usuarioApellido || '';
+  const directo = `${nombre} ${apellido}`.trim();
+  if (directo) return directo;
   const usuario = usuariosIndex.value.get(Number(residente.usuarioId));
-  return [usuario?.nombre, usuario?.apellido].filter(Boolean).join(' ').trim() || `Residente ${residente.idResidente}`;
+  const fromUsuario = [usuario?.nombre, usuario?.apellido].filter(Boolean).join(' ').trim();
+  if (fromUsuario) return fromUsuario;
+  return `Residente ${residente.idResidente}`;
 };
 
 const getApartamentoTorreId = (apartamento) => {
@@ -139,18 +171,6 @@ const getApartamentoTorreId = (apartamento) => {
   if (raw == null || Number.isNaN(Number(raw))) return null;
   return Number(raw);
 };
-
-const filteredTorres = computed(() => {
-  const term = torreSearch.value.trim().toLowerCase();
-  return torres.value
-    .filter((torre) => {
-      if (!term) return true;
-      const id = String(torre.idTorre ?? torre.id ?? '').toLowerCase();
-      const nombre = String(torre.nombre ?? '').toLowerCase();
-      return id.includes(term) || nombre.includes(term);
-    })
-    .slice(0, 8);
-});
 
 const filteredApartamentos = computed(() => {
   const selectedTorreId = toNumberOrNull(form.value.torreId);
@@ -165,27 +185,6 @@ const filteredApartamentos = computed(() => {
       const id = String(apartamento.idApartamento ?? '').toLowerCase();
       const numero = String(apartamento.numeroApartamento ?? apartamento.numero ?? '').toLowerCase();
       return id.includes(term) || numero.includes(term);
-    })
-    .slice(0, 8);
-});
-
-const filteredResidentes = computed(() => {
-  const selectedTorreId = toNumberOrNull(form.value.torreId);
-  const selectedApartamentoId = toNumberOrNull(form.value.apartamentoId);
-  const term = residenteSearch.value.trim().toLowerCase();
-  return residentes.value
-    .filter((residente) => {
-      const residenteApartamentoId = toNumberOrNull(residente.apartamentoId);
-      const residenteApartamento = apartamentosIndex.value.get(Number(residenteApartamentoId));
-      const residenteTorreId = getApartamentoTorreId(residenteApartamento);
-
-      const matchesApartamento = selectedApartamentoId == null || residenteApartamentoId === selectedApartamentoId;
-      const matchesTorre = selectedTorreId == null || residenteTorreId === selectedTorreId;
-      if (!matchesApartamento || !matchesTorre) return false;
-
-      if (!term) return true;
-      const label = getResidenteLabel(residente).toLowerCase();
-      return label.includes(term);
     })
     .slice(0, 8);
 });
@@ -210,36 +209,45 @@ const openAutocomplete = (field) => {
   activeAutocomplete.value = field;
 };
 
-const selectTorre = (torre) => {
-  form.value.torreId = Number(torre.idTorre ?? torre.id);
-  torreSearch.value = getTorreLabel(torre);
-  form.value.apartamentoId = null;
-  apartamentoSearch.value = '';
-  form.value.residenteId = null;
-  residenteSearch.value = '';
-  activeAutocomplete.value = '';
+const autoAsignarVehiculoYResidente = () => {
+  const torreId = form.value.torreId;
+  const aptoId = form.value.apartamentoId;
+  if (!torreId || !aptoId) {
+    form.value.residenteId = null;
+    residenteSearch.value = '';
+    form.value.tipoVehiculo = '';
+    form.value.placa = '';
+    return;
+  }
+  const key = `${torreId}|${aptoId}`;
+  const encontrados = residentePorTorreYApto.value.get(key);
+  if (encontrados && encontrados.length === 1) {
+    const r = encontrados[0];
+    form.value.residenteId = Number(r.idResidente);
+    residenteSearch.value = getResidenteLabel(r);
+
+    const vehiculosRes = vehiculosPorResidente.value.get(Number(r.idResidente));
+    if (vehiculosRes && vehiculosRes.length > 0) {
+      const v = vehiculosRes[0];
+      form.value.tipoVehiculo = v.tipoVehiculo ? v.tipoVehiculo.toLowerCase() : '';
+      form.value.placa = v.placa || '';
+    } else {
+      form.value.tipoVehiculo = '';
+      form.value.placa = '';
+    }
+  } else {
+    form.value.residenteId = null;
+    residenteSearch.value = '';
+    form.value.tipoVehiculo = '';
+    form.value.placa = '';
+  }
 };
 
 const selectApartamento = (apartamento) => {
   form.value.apartamentoId = Number(apartamento.idApartamento);
   apartamentoSearch.value = getApartamentoLabel(apartamento);
-  form.value.residenteId = null;
-  residenteSearch.value = '';
   activeAutocomplete.value = '';
-};
-
-const selectResidente = (residente) => {
-  form.value.residenteId = Number(residente.idResidente);
-  residenteSearch.value = getResidenteLabel(residente);
-  activeAutocomplete.value = '';
-};
-
-const onTorreInput = () => {
-  form.value.torreId = null;
-  form.value.apartamentoId = null;
-  apartamentoSearch.value = '';
-  form.value.residenteId = null;
-  residenteSearch.value = '';
+  autoAsignarVehiculoYResidente();
 };
 
 const onApartamentoInput = () => {
@@ -248,8 +256,25 @@ const onApartamentoInput = () => {
   residenteSearch.value = '';
 };
 
-const onResidenteInput = () => {
+const residenteSinVehiculos = computed(() => {
+  if (!form.value.residenteId) return false;
+  const vehiculosRes = vehiculosPorResidente.value.get(Number(form.value.residenteId));
+  return !vehiculosRes || vehiculosRes.length === 0;
+});
+
+const onTorreChange = () => {
+  form.value.apartamentoId = null;
+  apartamentoSearch.value = '';
   form.value.residenteId = null;
+  residenteSearch.value = '';
+  form.value.tipoVehiculo = '';
+  form.value.placa = '';
+};
+
+const onVehiculoChange = () => {
+  if (form.value.tipoVehiculo === 'bicicleta') {
+    form.value.placa = '';
+  }
 };
 
 /* ── Filtrado + paginación ── */
@@ -278,7 +303,6 @@ const visiblePages = computed(() => {
 const openCrear  = async () => {
   errorMessage.value = '';
   form.value = emptyForm();
-  torreSearch.value = '';
   apartamentoSearch.value = '';
   residenteSearch.value = '';
   if (autocompleteCloseTimer.value) {
@@ -295,7 +319,6 @@ const openEditar = (e) => {
   const torre = torresIndex.value.get(Number(e.torreId));
   const apartamento = apartamentosIndex.value.get(Number(e.apartamentoId));
   const residente = residentesIndex.value.get(Number(e.residenteId));
-  torreSearch.value = torre ? getTorreLabel(torre) : '';
   apartamentoSearch.value = apartamento ? getApartamentoLabel(apartamento) : '';
   residenteSearch.value = residente ? getResidenteLabel(residente) : '';
   modalMode.value = 'editar';
@@ -332,39 +355,63 @@ const cargarParqueaderos = async () => {
 
 const cargarCatalogos = async () => {
   try {
-    const [torresData, apartamentosData, residentesData, usuariosData] = await Promise.all([
+    const [torresData, apartamentosData, residentesData, usuariosData, vehiculosData] = await Promise.all([
       TorreService.listar(),
       ApartamentoService.listar(),
       ResidenteService.listar(),
       UsuarioService.listar(),
+      VehiculoService.listar(),
     ]);
 
     torres.value = Array.isArray(torresData) ? torresData : [];
     apartamentos.value = Array.isArray(apartamentosData) ? apartamentosData : [];
     residentes.value = Array.isArray(residentesData) ? residentesData : [];
     usuarios.value = Array.isArray(usuariosData) ? usuariosData : [];
+    vehiculos.value = Array.isArray(vehiculosData) ? vehiculosData : [];
   } catch (error) {
     torres.value = [];
     apartamentos.value = [];
     residentes.value = [];
     usuarios.value = [];
+    vehiculos.value = [];
     console.error('No fue posible cargar catalogos de apoyo:', error);
   }
 };
 
 const guardar = async () => {
+  const tipoVehiculo = form.value.tipoVehiculo;
+  const esBici = tipoVehiculo === 'bicicleta';
+
   const payload = {
     idParqueadero: form.value.idParqueadero,
     apartamentoId: toNumberOrNull(form.value.apartamentoId),
     torreId: toNumberOrNull(form.value.torreId),
     numeroEspacio: (form.value.numeroEspacio || '').trim(),
-    tipoVehiculo: form.value.tipoVehiculo,
-    placa: (form.value.placa || '').trim().toUpperCase(),
+    tipoVehiculo,
+    placa: esBici ? '' : (form.value.placa || '').trim().toUpperCase(),
     residenteId: toNumberOrNull(form.value.residenteId),
   };
 
-  if (!payload.numeroEspacio || !payload.tipoVehiculo) {
-    errorMessage.value = 'Numero de espacio y tipo de vehiculo son obligatorios.';
+  if (residenteSinVehiculos.value) {
+    errorMessage.value = 'El residente seleccionado no tiene vehículos registrados. No es posible asignar un espacio de parqueadero.';
+    await swalError(errorMessage.value);
+    return;
+  }
+
+  if (!payload.numeroEspacio) {
+    errorMessage.value = 'Numero de espacio es obligatorio.';
+    await swalError(errorMessage.value);
+    return;
+  }
+
+  if (!payload.tipoVehiculo) {
+    errorMessage.value = 'Tipo de vehiculo es obligatorio. Debes seleccionar torre y apartamento para auto-asignarlo.';
+    await swalError(errorMessage.value);
+    return;
+  }
+
+  if (payload.tipoVehiculo !== 'bicicleta' && !payload.placa) {
+    errorMessage.value = 'La placa es obligatoria para carros y motos.';
     await swalError(errorMessage.value);
     return;
   }
@@ -686,49 +733,22 @@ onMounted(async () => {
             <div v-else-if="modalMode !== 'ver'" class="modal-body">
               <div class="form-grid">
                 <div class="form-field">
-                  <label class="form-label">Número de Espacio</label>
+                  <label class="form-label">Torre</label>
                   <div class="form-input-wrap">
-                    <span class="form-icon icon">local_parking</span>
-                    <input v-model="form.numeroEspacio" class="form-input" placeholder="Ej. P1-001" />
-                  </div>
-                </div>
-                <div class="form-field">
-                  <label class="form-label">Tipo de Vehículo</label>
-                  <div class="form-input-wrap">
-                    <span class="form-icon icon">{{ tipoConfig[form.tipoVehiculo]?.icon || 'directions_car' }}</span>
-                    <select v-model="form.tipoVehiculo" class="form-input">
-                      <option value="carro">Carro</option>
-                      <option value="moto">Moto</option>
-                      <option value="bicicleta">Bicicleta</option>
+                    <span class="form-icon icon">domain</span>
+                    <select v-model.number="form.torreId" class="form-input" @change="onTorreChange">
+                      <option value="">Selecciona una torre</option>
+                      <option
+                        v-for="torre in torres"
+                        :key="torre.idTorre ?? torre.id"
+                        :value="torre.idTorre ?? torre.id"
+                      >
+                        {{ getTorreLabel(torre) }}
+                      </option>
                     </select>
                   </div>
                 </div>
-                <div class="form-field">
-                  <label class="form-label">Torre</label>
-                  <div class="form-input-wrap autocomplete-wrap">
-                    <span class="form-icon icon">home</span>
-                    <input
-                      v-model="torreSearch"
-                      class="form-input"
-                      type="text"
-                      placeholder="Buscar torre"
-                      @focus="openAutocomplete('torre')"
-                      @blur="clearAutocomplete"
-                      @input="onTorreInput"
-                    />
-                    <ul v-if="activeAutocomplete === 'torre' && filteredTorres.length" class="autocomplete-list">
-                      <li
-                        v-for="torre in filteredTorres"
-                        :key="torre.idTorre ?? torre.id"
-                        class="autocomplete-item"
-                        @mousedown.prevent="selectTorre(torre)"
-                      >
-                        {{ getTorreLabel(torre) }}
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-                <div class="form-field">
+                <div class="form-field autocomplete-field">
                   <label class="form-label">Apartamento</label>
                   <div class="form-input-wrap autocomplete-wrap">
                     <span class="form-icon icon">apartment</span>
@@ -736,59 +756,77 @@ onMounted(async () => {
                       v-model="apartamentoSearch"
                       class="form-input"
                       type="text"
-                      placeholder="Busca apartamento por número o ID"
+                      placeholder="Selecciona torre primero..."
+                      :disabled="!form.torreId"
                       @focus="openAutocomplete('apartamento')"
                       @blur="clearAutocomplete"
                       @input="onApartamentoInput"
                     />
-                    <ul v-if="activeAutocomplete === 'apartamento' && filteredApartamentos.length" class="autocomplete-list">
-                      <li
+                    <div v-if="activeAutocomplete === 'apartamento' && filteredApartamentos.length > 0" class="autocomplete-dropdown">
+                      <div
                         v-for="apartamento in filteredApartamentos"
                         :key="apartamento.idApartamento"
                         class="autocomplete-item"
                         @mousedown.prevent="selectApartamento(apartamento)"
                       >
                         {{ getApartamentoLabel(apartamento) }}
-                      </li>
-                    </ul>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <div class="form-field">
-                  <label class="form-label">Placa</label>
-                  <div class="form-input-wrap">
-                    <span class="form-icon icon">pin</span>
-                    <input v-model="form.placa" class="form-input" placeholder="Ej. ABC-123" style="text-transform:uppercase"/>
-                  </div>
-                </div>
-                <div class="form-field full">
                   <label class="form-label">Residente</label>
-                  <div class="form-input-wrap autocomplete-wrap">
+                  <div class="form-input-wrap">
                     <span class="form-icon icon">person</span>
                     <input
-                      v-model="residenteSearch"
                       class="form-input"
                       type="text"
-                      placeholder="Busca residente por nombre"
-                      @focus="openAutocomplete('residente')"
-                      @blur="clearAutocomplete"
-                      @input="onResidenteInput"
+                      :value="residenteSearch || 'Nombre del residente'"
+                      placeholder="Nombre del residente"
+                      readonly
                     />
-                    <ul v-if="activeAutocomplete === 'residente' && filteredResidentes.length" class="autocomplete-list">
-                      <li
-                        v-for="residente in filteredResidentes"
-                        :key="residente.idResidente"
-                        class="autocomplete-item"
-                        @mousedown.prevent="selectResidente(residente)"
-                      >
-                        {{ getResidenteLabel(residente) }}
-                      </li>
-                    </ul>
+                  </div>
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Tipo de Vehículo</label>
+                  <div class="form-input-wrap">
+                    <span class="form-icon icon">{{ tipoConfig[form.tipoVehiculo]?.icon || 'directions_car' }}</span>
+                    <select v-model="form.tipoVehiculo" class="form-input" :disabled="!form.residenteId" @change="onVehiculoChange">
+                      <option value="">Seleccionar tipo...</option>
+                      <option value="carro">Carro</option>
+                      <option value="moto">Moto</option>
+                      <option value="bicicleta">Bicicleta</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Placa {{ form.tipoVehiculo === 'bicicleta' ? '' : '*' }}</label>
+                  <div class="form-input-wrap">
+                    <span class="form-icon icon">pin</span>
+                    <input
+                      v-model="form.placa"
+                      class="form-input"
+                      :placeholder="form.tipoVehiculo === 'bicicleta' ? 'No aplica' : 'Ej. ABC-123'"
+                      :disabled="form.tipoVehiculo === 'bicicleta' || !form.residenteId"
+                      style="text-transform:uppercase"
+                    />
+                  </div>
+                </div>
+                <div v-if="residenteSinVehiculos" class="form-warning">
+                  <span class="icon">warning</span>
+                  El residente seleccionado no tiene vehículos registrados. No es posible asignar un espacio.
+                </div>
+                <div class="form-field">
+                  <label class="form-label">Número de Espacio</label>
+                  <div class="form-input-wrap">
+                    <span class="form-icon icon">local_parking</span>
+                    <input v-model="form.numeroEspacio" class="form-input" placeholder="Ej. P1-001" :disabled="residenteSinVehiculos" />
                   </div>
                 </div>
               </div>
               <div class="modal-footer">
                 <button class="btn-secondary" @click="closeModal">Cancelar</button>
-                <button class="btn-primary" :disabled="isSaving" @click="guardar">
+                <button class="btn-primary" :disabled="isSaving || residenteSinVehiculos" @click="guardar">
                   <span class="icon">{{ modalMode === 'crear' ? 'add_circle' : 'save' }}</span>
                   {{ isSaving ? 'Guardando...' : (modalMode === 'crear' ? 'Crear Espacio' : 'Guardar Cambios') }}
                 </button>
@@ -988,7 +1026,32 @@ onMounted(async () => {
 .form-input::placeholder { color: #b0bac5; }
 .form-input:focus { outline: none; background: #fff; border-color: #0f4c81; box-shadow: 0 0 0 3px rgba(15,76,129,0.12); }
 
+.form-warning {
+  display: flex; align-items: center; gap: 0.5rem;
+  background: #fff8e1; border: 1px solid #ffe082; border-radius: 0.75rem;
+  padding: 0.7rem 1rem; font-size: 0.8125rem; color: #8d6e00; font-weight: 600;
+  grid-column: 1 / -1;
+}
+.form-warning .icon { font-size: 18px; color: #f9a825; }
+
 .autocomplete-wrap { position: relative; }
+.autocomplete-field { position: relative; }
+
+.autocomplete-dropdown {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0.25rem;
+  max-height: 220px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.625rem;
+  box-shadow: 0 4px 12px rgba(15, 76, 129, 0.16);
+}
 
 .autocomplete-list {
   position: absolute;

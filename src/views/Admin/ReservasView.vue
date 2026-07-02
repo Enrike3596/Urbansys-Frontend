@@ -69,6 +69,15 @@ const torresIndex = computed(() => new Map(torres.value.map((torre) => [Number(t
 const apartamentosIndex = computed(() => new Map(apartamentos.value.map((apt) => [Number(apt.idApartamento), apt])))
 const residentesIndex = computed(() => new Map(residentes.value.map((res) => [Number(res.idResidente), res])))
 const usuariosIndex = computed(() => new Map(usuarios.value.map((usr) => [Number(usr.id), usr])))
+const residentePorTorreYApto = computed(() => {
+  const map = new Map()
+  for (const r of residentes.value) {
+    const key = `${r.torreId ?? ''}|${r.apartamentoId ?? ''}`
+    if (!map.has(key)) map.set(key, [])
+    map.get(key).push(r)
+  }
+  return map
+})
 
 function getSalonNombre(item) {
   if (!item) return '-'
@@ -110,9 +119,14 @@ function getResidenteNombre(item) {
 
   if (item.residenteId == null) return '-'
   const residente = residentesIndex.value.get(Number(item.residenteId))
-  const usuario = residente ? usuariosIndex.value.get(Number(residente.usuarioId)) : null
-  const nombreCompleto = [usuario?.nombre, usuario?.apellido].filter(Boolean).join(' ').trim()
-  return nombreCompleto || '-'
+  if (!residente) return '-'
+  const nombre = residente.nombre || residente.usuarioNombre || ''
+  const apellido = residente.apellido || residente.usuarioApellido || ''
+  const directo = `${nombre} ${apellido}`.trim()
+  if (directo) return directo
+  const usuario = usuariosIndex.value.get(Number(residente.usuarioId))
+  const fromUsuario = [usuario?.nombre, usuario?.apellido].filter(Boolean).join(' ').trim()
+  return fromUsuario || '-'
 }
 
 function getSalonLabel(salon) {
@@ -128,8 +142,15 @@ function getApartamentoLabel(apartamento) {
 }
 
 function getResidenteLabel(residente) {
+  if (!residente) return ''
+  const nombre = residente.nombre || residente.usuarioNombre || ''
+  const apellido = residente.apellido || residente.usuarioApellido || ''
+  const directo = `${nombre} ${apellido}`.trim()
+  if (directo) return directo
   const usuario = usuariosIndex.value.get(Number(residente.usuarioId))
-  return [usuario?.nombre, usuario?.apellido].filter(Boolean).join(' ').trim() || `Residente ${residente.idResidente}`
+  const fromUsuario = [usuario?.nombre, usuario?.apellido].filter(Boolean).join(' ').trim()
+  if (fromUsuario) return fromUsuario
+  return `Residente ${residente.idResidente}`
 }
 
 function getApartamentoTorreId(apartamento) {
@@ -245,9 +266,28 @@ function selectTorre(torre) {
 function selectApartamento(apartamento) {
   form.value.apartamentoId = Number(apartamento.idApartamento)
   apartamentoSearch.value = getApartamentoLabel(apartamento)
-  form.value.residenteId = null
-  residenteSearch.value = ''
   activeAutocomplete.value = ''
+  autoAsignarResidente()
+}
+
+function autoAsignarResidente() {
+  const torreId = form.value.torreId
+  const aptoId = form.value.apartamentoId
+  if (!torreId || !aptoId) {
+    form.value.residenteId = null
+    residenteSearch.value = ''
+    return
+  }
+  const key = `${torreId}|${aptoId}`
+  const encontrados = residentePorTorreYApto.value.get(key)
+  if (encontrados && encontrados.length === 1) {
+    const r = encontrados[0]
+    form.value.residenteId = Number(r.idResidente)
+    residenteSearch.value = getResidenteLabel(r)
+  } else {
+    form.value.residenteId = null
+    residenteSearch.value = ''
+  }
 }
 
 function selectResidente(residente) {

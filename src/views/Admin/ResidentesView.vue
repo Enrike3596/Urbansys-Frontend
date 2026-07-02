@@ -6,6 +6,8 @@ import ApartamentoService from '@/services/Apartamento.Service'
 import TorreService from '@/services/Torre.Service'
 import HijoService from '@/services/Hijo.Service'
 import MascotaService from '@/services/Mascota.Service'
+import AdultoService from '@/services/Adulto.Service'
+import VehiculoService from '@/services/Vehiculo.Service'
 import { swalConfirmDelete, swalError, swalSuccess } from '@/utils/sweetalert'
 
 const searchQuery = ref('')
@@ -19,6 +21,8 @@ const modalMode = ref('crear')
 const selectedResidente = ref(null)
 const selectedResidenteHijos = ref([])
 const selectedResidenteMascotas = ref([])
+const selectedResidenteAdultos = ref([])
+const selectedResidenteVehiculos = ref([])
 const isLoading = ref(false)
 const isSaving = ref(false)
 const isBulkLoading = ref(false)
@@ -87,6 +91,8 @@ const emptyForm = () => ({
 const form = ref(emptyForm())
 const hijos = ref([])
 const mascotas = ref([])
+const adultos = ref([])
+const vehiculos = ref([])
 
 const residentes = ref([])
 const apartamentos = ref([])
@@ -294,14 +300,44 @@ function eliminarMascota(index) {
   mascotas.value.splice(index, 1)
 }
 
+function agregarAdulto() {
+  adultos.value.push({
+    idAdulto: null,
+    residenteId: form.value.idResidente,
+    nombre: '',
+    apellido: '',
+  })
+}
+
+function eliminarAdulto(index) {
+  adultos.value.splice(index, 1)
+}
+
+function agregarVehiculo() {
+  vehiculos.value.push({
+    idVehiculo: null,
+    residenteId: form.value.idResidente,
+    tipoVehiculo: '',
+    placa: '',
+  })
+}
+
+function eliminarVehiculo(index) {
+  vehiculos.value.splice(index, 1)
+}
+
 function openCrear() {
   errorMessage.value = ''
   form.value = emptyForm()
   hijos.value = []
   mascotas.value = []
+  adultos.value = []
+  vehiculos.value = []
   selectedResidente.value = null
   selectedResidenteHijos.value = []
   selectedResidenteMascotas.value = []
+  selectedResidenteAdultos.value = []
+  selectedResidenteVehiculos.value = []
   torreSearch.value = ''
   apartamentoSearch.value = ''
   if (autocompleteCloseTimer.value) {
@@ -635,13 +671,17 @@ async function openEditar(item) {
   form.value = { ...item }
   
   try {
-    // Cargar hijos y mascotas del residente
+    // Cargar hijos, mascotas, adultos y vehiculos del residente
     hijos.value = await HijoService.listarPorResidente(item.idResidente)
     mascotas.value = await MascotaService.listarPorResidente(item.idResidente)
+    adultos.value = await AdultoService.listarPorResidente(item.idResidente)
+    vehiculos.value = await VehiculoService.listarPorResidente(item.idResidente)
   } catch (error) {
     hijos.value = []
     mascotas.value = []
-    console.error('Error cargando hijos y mascotas:', error)
+    adultos.value = []
+    vehiculos.value = []
+    console.error('Error cargando hijos, mascotas, adultos y vehiculos:', error)
   }
 
   const torre = torresIndex.value.get(Number(item.torreId))
@@ -656,16 +696,22 @@ async function openVer(item) {
   selectedResidente.value = item
   selectedResidenteHijos.value = Array.isArray(item.hijos) ? item.hijos : []
   selectedResidenteMascotas.value = Array.isArray(item.mascotas) ? item.mascotas : []
+  selectedResidenteAdultos.value = Array.isArray(item.adultos) ? item.adultos : []
+  selectedResidenteVehiculos.value = Array.isArray(item.vehiculos) ? item.vehiculos : []
 
   try {
-    const [hijosData, mascotasData] = await Promise.all([
+    const [hijosData, mascotasData, adultosData, vehiculosData] = await Promise.all([
       HijoService.listarPorResidente(item.idResidente),
       MascotaService.listarPorResidente(item.idResidente),
+      AdultoService.listarPorResidente(item.idResidente),
+      VehiculoService.listarPorResidente(item.idResidente),
     ])
     selectedResidenteHijos.value = Array.isArray(hijosData) ? hijosData : []
     selectedResidenteMascotas.value = Array.isArray(mascotasData) ? mascotasData : []
+    selectedResidenteAdultos.value = Array.isArray(adultosData) ? adultosData : []
+    selectedResidenteVehiculos.value = Array.isArray(vehiculosData) ? vehiculosData : []
   } catch (error) {
-    console.error('Error cargando detalle de hijos y mascotas:', error)
+    console.error('Error cargando detalle:', error)
   }
 
   modalMode.value = 'ver'
@@ -677,6 +723,8 @@ function closeModal() {
   selectedResidente.value = null
   selectedResidenteHijos.value = []
   selectedResidenteMascotas.value = []
+  selectedResidenteAdultos.value = []
+  selectedResidenteVehiculos.value = []
   if (modalMode.value === 'masiva') {
     clearBulkState()
   }
@@ -687,10 +735,12 @@ async function cargarResidentes() {
   errorMessage.value = ''
 
   try {
-    const [residentesData, hijosData, mascotasData] = await Promise.all([
+    const [residentesData, hijosData, mascotasData, adultosData, vehiculosData] = await Promise.all([
       ResidenteService.listar(),
       HijoService.listar(),
       MascotaService.listar(),
+      AdultoService.listar(),
+      VehiculoService.listar(),
     ])
 
     const hijosByResidente = (Array.isArray(hijosData) ? hijosData : []).reduce((acc, hijo) => {
@@ -707,12 +757,28 @@ async function cargarResidentes() {
       return acc
     }, new Map())
 
+    const adultosByResidente = (Array.isArray(adultosData) ? adultosData : []).reduce((acc, adulto) => {
+      const residenteId = Number(adulto.residenteId)
+      if (!acc.has(residenteId)) acc.set(residenteId, [])
+      acc.get(residenteId).push(adulto)
+      return acc
+    }, new Map())
+
+    const vehiculosByResidente = (Array.isArray(vehiculosData) ? vehiculosData : []).reduce((acc, vehiculo) => {
+      const residenteId = Number(vehiculo.residenteId)
+      if (!acc.has(residenteId)) acc.set(residenteId, [])
+      acc.get(residenteId).push(vehiculo)
+      return acc
+    }, new Map())
+
     residentes.value = (Array.isArray(residentesData) ? residentesData : []).map((residente) => {
       const idResidente = Number(residente.idResidente)
       return {
         ...residente,
         hijos: hijosByResidente.get(idResidente) || [],
         mascotas: mascotasByResidente.get(idResidente) || [],
+        adultos: adultosByResidente.get(idResidente) || [],
+        vehiculos: vehiculosByResidente.get(idResidente) || [],
       }
     })
   } catch (error) {
@@ -813,6 +879,49 @@ async function guardar() {
         }
       } else if (mascota.idMascota) {
         await MascotaService.eliminar(mascota.idMascota)
+      }
+    }
+
+    // Guardar adultos
+    for (const adulto of adultos.value) {
+      if (adulto.nombre.trim() && adulto.apellido.trim()) {
+        const adultoPayload = {
+          residenteId: residenteGuardado.idResidente,
+          nombre: adulto.nombre.trim(),
+          apellido: adulto.apellido.trim(),
+        }
+
+        if (adulto.idAdulto) {
+          await AdultoService.actualizar(adulto.idAdulto, adultoPayload)
+        } else {
+          await AdultoService.crear(adultoPayload)
+        }
+      } else if (adulto.idAdulto) {
+        await AdultoService.eliminar(adulto.idAdulto)
+      }
+    }
+
+    // Guardar vehiculos
+    for (const vehiculo of vehiculos.value) {
+      if (vehiculo.tipoVehiculo) {
+        const esBici = vehiculo.tipoVehiculo === 'BICICLETA'
+        const placaValida = esBici || (vehiculo.placa && vehiculo.placa.trim())
+
+        if (!esBici && !placaValida) continue
+
+        const vehiculoPayload = {
+          residenteId: residenteGuardado.idResidente,
+          tipoVehiculo: vehiculo.tipoVehiculo,
+          placa: esBici ? '' : vehiculo.placa.trim(),
+        }
+
+        if (vehiculo.idVehiculo) {
+          await VehiculoService.actualizar(vehiculo.idVehiculo, vehiculoPayload)
+        } else {
+          await VehiculoService.crear(vehiculoPayload)
+        }
+      } else if (vehiculo.idVehiculo) {
+        await VehiculoService.eliminar(vehiculo.idVehiculo)
       }
     }
 
@@ -942,15 +1051,17 @@ onMounted(async () => {
               <th>Tiene Mascota</th>
               <th>Tipo Mascota</th>
               <th>Tiene Hijos</th>
+              <th>Adultos</th>
+              <th>Vehículo</th>
               <th class="text-right">Acciones</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="isLoading">
-              <td colspan="8" class="empty-state">Cargando residentes...</td>
+              <td colspan="10" class="empty-state">Cargando residentes...</td>
             </tr>
             <tr v-else-if="paginated.length === 0">
-              <td colspan="8" class="empty-state">No hay residentes para mostrar.</td>
+              <td colspan="10" class="empty-state">No hay residentes para mostrar.</td>
             </tr>
             <tr v-for="item in paginated" v-else :key="item.idResidente" class="data-row">
               <td>{{ getUsuarioNombre(item) }}</td>
@@ -967,6 +1078,8 @@ onMounted(async () => {
               <td>{{ (item.mascotas && item.mascotas.length > 0) ? 'Si' : 'No' }}</td>
               <td>{{ (item.mascotas && item.mascotas.length > 0) ? item.mascotas[0].tipo || '-' : '-' }}</td>
               <td>{{ (item.hijos && item.hijos.length > 0) ? 'Si' : 'No' }}</td>
+              <td>{{ (item.adultos && item.adultos.length > 0) ? item.adultos.length : 'No' }}</td>
+              <td>{{ (item.vehiculos && item.vehiculos.length > 0) ? item.vehiculos[0].placa || 'Si' : 'No' }}</td>
               <td class="text-right">
                 <div class="actions-row">
                   <button class="action-btn view" title="Ver" @click="openVer(item)">
@@ -1033,6 +1146,8 @@ onMounted(async () => {
                 <div class="detail-item"><span class="detail-label">Tipo Residente</span><p class="detail-value">{{ tipoConfig[selectedResidente.tipoResidente]?.label || selectedResidente.tipoResidente }}</p></div>
                 <div class="detail-item"><span class="detail-label">Tiene Hijos</span><p class="detail-value">{{ selectedResidenteHijos.length > 0 ? 'Si' : 'No' }}</p></div>
                 <div class="detail-item"><span class="detail-label">Tiene Mascota</span><p class="detail-value">{{ selectedResidenteMascotas.length > 0 ? 'Si' : 'No' }}</p></div>
+                <div class="detail-item"><span class="detail-label">Tiene Adultos</span><p class="detail-value">{{ selectedResidenteAdultos.length > 0 ? 'Si' : 'No' }}</p></div>
+                <div class="detail-item"><span class="detail-label">Tiene Vehículo</span><p class="detail-value">{{ selectedResidenteVehiculos.length > 0 ? 'Si' : 'No' }}</p></div>
                 <div class="detail-item full">
                   <span class="detail-label">Hijos Registrados</span>
                   <p v-if="selectedResidenteHijos.length === 0" class="detail-value">No registra hijos.</p>
@@ -1048,6 +1163,24 @@ onMounted(async () => {
                   <div v-else class="detail-list">
                     <p v-for="(mascota, index) in selectedResidenteMascotas" :key="mascota.idMascota || index" class="detail-value">
                       {{ index + 1 }}. {{ mascota.tipo || 'Mascota' }} - {{ mascota.nombre || 'Sin nombre' }}{{ mascota.descripcion ? ` (${mascota.descripcion})` : '' }}
+                    </p>
+                  </div>
+                </div>
+                <div class="detail-item full">
+                  <span class="detail-label">Adultos Registrados</span>
+                  <p v-if="selectedResidenteAdultos.length === 0" class="detail-value">No registra adultos adicionales.</p>
+                  <div v-else class="detail-list">
+                    <p v-for="(adulto, index) in selectedResidenteAdultos" :key="adulto.idAdulto || index" class="detail-value">
+                      {{ index + 1 }}. {{ adulto.nombre }} {{ adulto.apellido }}
+                    </p>
+                  </div>
+                </div>
+                <div class="detail-item full">
+                  <span class="detail-label">Vehículos Registrados</span>
+                  <p v-if="selectedResidenteVehiculos.length === 0" class="detail-value">No registra vehículos.</p>
+                  <div v-else class="detail-list">
+                    <p v-for="(vehiculo, index) in selectedResidenteVehiculos" :key="vehiculo.idVehiculo || index" class="detail-value">
+                      {{ index + 1 }}. {{ vehiculo.tipoVehiculo || 'Vehículo' }} - {{ vehiculo.placa || 'Sin placa' }}
                     </p>
                   </div>
                 </div>
@@ -1371,6 +1504,82 @@ onMounted(async () => {
                   </div>
                 </div>
               </div>
+
+                <!-- ADULTOS SECTION -->
+                <div class="form-field full" style="margin-top: 2rem">
+                  <div style="display: flex; justify-content: space-between; align-items: center">
+                    <label class="form-label">Adultos Adicionales</label>
+                    <button type="button" class="btn-add-small" @click="agregarAdulto">
+                      <span class="icon">add</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div v-for="(adulto, index) in adultos" :key="index" class="form-field full adulto-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid #e2e8f0">
+                    <span class="form-label" style="margin: 0; font-weight: 600">Adulto {{ index + 1 }}</span>
+                    <button type="button" class="btn-icon-delete" @click="eliminarAdulto(index)" title="Eliminar">
+                      <span class="icon">delete</span>
+                    </button>
+                  </div>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem">
+                    <div class="form-field">
+                      <label class="form-label" style="font-size: 0.875rem">Nombre *</label>
+                      <div class="form-input-wrap">
+                        <span class="form-icon icon">person</span>
+                        <input v-model="adulto.nombre" class="form-input" placeholder="Ej: Carlos" />
+                      </div>
+                    </div>
+                    <div class="form-field">
+                      <label class="form-label" style="font-size: 0.875rem">Apellido *</label>
+                      <div class="form-input-wrap">
+                        <span class="form-icon icon">person</span>
+                        <input v-model="adulto.apellido" class="form-input" placeholder="Ej: López" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- VEHICULOS SECTION -->
+                <div class="form-field full" style="margin-top: 2rem">
+                  <div style="display: flex; justify-content: space-between; align-items: center">
+                    <label class="form-label">Vehículos</label>
+                    <button type="button" class="btn-add-small" @click="agregarVehiculo">
+                      <span class="icon">add</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div v-for="(vehiculo, index) in vehiculos" :key="index" class="form-field full vehiculo-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid #e2e8f0">
+                    <span class="form-label" style="margin: 0; font-weight: 600">Vehículo {{ index + 1 }}</span>
+                    <button type="button" class="btn-icon-delete" @click="eliminarVehiculo(index)" title="Eliminar">
+                      <span class="icon">delete</span>
+                    </button>
+                  </div>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem">
+                    <div class="form-field">
+                      <label class="form-label" style="font-size: 0.875rem">Tipo *</label>
+                      <div class="form-input-wrap">
+                        <span class="form-icon icon">directions_car</span>
+                        <select v-model="vehiculo.tipoVehiculo" class="form-input">
+                          <option value="">Seleccionar tipo...</option>
+                          <option value="CARRO">Carro</option>
+                          <option value="MOTO">Moto</option>
+                          <option value="BICICLETA">Bicicleta</option>
+                          <option value="OTRO">Otro</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="form-field">
+                      <label class="form-label" style="font-size: 0.875rem">Placa {{ vehiculo.tipoVehiculo === 'BICICLETA' ? '' : '*' }}</label>
+                      <div class="form-input-wrap">
+                        <span class="form-icon icon">badge</span>
+                        <input v-model="vehiculo.placa" class="form-input" :placeholder="vehiculo.tipoVehiculo === 'BICICLETA' ? 'No aplica' : 'Ej: ABC-123'" maxlength="10" :disabled="vehiculo.tipoVehiculo === 'BICICLETA'" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
               <div class="modal-footer">
                 <button class="btn-secondary" @click="closeModal">Cancelar</button>
@@ -1735,7 +1944,7 @@ onMounted(async () => {
   color: #991b1b;
 }
 
-.hijo-card, .mascota-card {
+.hijo-card, .mascota-card, .adulto-card, .vehiculo-card {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 0.625rem;
@@ -1743,7 +1952,7 @@ onMounted(async () => {
   margin-top: 0.75rem;
 }
 
-.hijo-card:hover, .mascota-card:hover {
+.hijo-card:hover, .mascota-card:hover, .adulto-card:hover, .vehiculo-card:hover {
   border-color: #cbd5e1;
   background: #f1f5f9;
 }
