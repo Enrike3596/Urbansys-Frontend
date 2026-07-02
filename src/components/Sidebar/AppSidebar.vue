@@ -20,6 +20,7 @@ const navItems = [
   { label: 'Reservas',     icon: 'event_available', to: '/dashboard/reservas' },
   { label: 'Salón Común',  icon: 'meeting_room',    to: '/dashboard/salon' },
   { label: 'Torres',       icon: 'domain',          to: '/dashboard/torres' },
+  { label: 'Novedades',    icon: 'campaign',        to: '/dashboard/novedades' },
   { label: 'Residentes',   icon: 'group',           to: '/dashboard/residentes' },
   { label: 'Usuarios',     icon: 'person',          to: '/dashboard/usuarios' },
 ];

@@ -101,6 +101,11 @@ const router = createRouter({
           component: () => import('@/views/Admin/ResidentesView.vue'),
         },
         {
+          path: 'novedades',
+          name: 'dashboard-novedades',
+          component: () => import('@/views/Admin/NovedadesView.vue'),
+        },
+        {
           path: 'usuarios',
           name: 'dashboard-usuarios',
           component: () => import('@/views/Admin/UsuariosView.vue'),
