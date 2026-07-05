@@ -5,6 +5,7 @@ import TorreService from '../../services/Torre.Service';
 import ApartamentoService from '../../services/Apartamento.Service';
 import ResidenteService from '../../services/Residente.Service';
 import { swalConfirmDelete, swalError, swalSuccess } from '@/utils/sweetalert';
+import Swal from 'sweetalert2';
 
 const searchQuery  = ref('');
 const filterTipo   = ref('todos');
@@ -29,9 +30,13 @@ const emptyForm = () => ({
   descripcion: '',
   tipo: '',
   estado: 'abierta',
+  prioridad: null,
+  planAccion: '',
+  solucion: '',
   reportadoPorId: '',
   apartamentoId: '',
   torreId: '',
+  fechaInicioProceso: '',
   fechaCierre: '',
 });
 
@@ -210,9 +215,13 @@ const openEditar = (n) => {
     descripcion: n.descripcion ?? '',
     tipo: n.tipo ?? 'otro',
     estado: n.estado ?? 'abierta',
+    prioridad: n.prioridad ?? null,
+    planAccion: n.planAccion ?? '',
+    solucion: n.solucion ?? '',
     reportadoPorId: n.reportadoPorId ?? '',
     apartamentoId: n.apartamentoId ?? '',
     torreId: n.torreId ?? '',
+    fechaInicioProceso: n.fechaInicioProceso ?? '',
     fechaCierre: n.fechaCierre ?? '',
   };
   apartamentoSearch.value = apartamento ? getApartamentoLabel(apartamento) : '';
@@ -260,11 +269,25 @@ const guardar = async () => {
   const titulo = form.value.titulo?.trim();
   const descripcion = form.value.descripcion?.trim();
   const tipo = form.value.tipo;
+  const estado = form.value.estado;
 
   if (!titulo || !descripcion || !tipo) {
     formError.value = 'Debes completar titulo, descripcion y tipo.';
     await swalError(formError.value);
     return;
+  }
+
+  if (modalMode.value === 'editar') {
+    if (estado === 'en_proceso' && !form.value.planAccion?.trim()) {
+      formError.value = 'Debes indicar el plan de accion al pasar a En Proceso.';
+      await swalError(formError.value);
+      return;
+    }
+    if (estado === 'cerrada' && !form.value.solucion?.trim()) {
+      formError.value = 'Debes indicar la solucion al pasar a Cerrada.';
+      await swalError(formError.value);
+      return;
+    }
   }
 
   isSaving.value = true;
@@ -274,6 +297,7 @@ const guardar = async () => {
         titulo,
         descripcion,
         tipo,
+        prioridad: form.value.prioridad || null,
         reportadoPorId: form.value.reportadoPorId || null,
         apartamentoId: form.value.apartamentoId || null,
         torreId: form.value.torreId || null,
@@ -285,9 +309,13 @@ const guardar = async () => {
         descripcion,
         tipo,
         estado: form.value.estado,
+        prioridad: form.value.prioridad || null,
+        planAccion: form.value.planAccion?.trim() || null,
+        solucion: form.value.solucion?.trim() || null,
         reportadoPorId: form.value.reportadoPorId || null,
         apartamentoId: form.value.apartamentoId || null,
         torreId: form.value.torreId || null,
+        fechaInicioProceso: form.value.fechaInicioProceso || null,
         fechaCierre: form.value.fechaCierre || null,
       });
       const idx = novedades.value.findIndex(n => (n.idNovedad ?? n.id) === form.value.idNovedad);
@@ -318,13 +346,73 @@ const eliminar = async (id) => {
   }
 };
 
+const cambiarEstado = async (item, nuevoEstado) => {
+  if (nuevoEstado === 'en_proceso') {
+    const { value: planAccion, isConfirmed } = await Swal.fire({
+      title: 'Iniciar Proceso',
+      text: 'Describe el plan de acción a seguir:',
+      input: 'textarea',
+      inputPlaceholder: 'Describe el plan de acción...',
+      inputAttributes: { required: 'required' },
+      showCancelButton: true,
+      confirmButtonText: 'Iniciar proceso',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#f59e0b',
+      cancelButtonColor: '#64748b',
+      reverseButtons: true,
+      preConfirm: (val) => {
+        if (!val || !val.trim()) {
+          Swal.showValidationMessage('El plan de acción es obligatorio');
+          return false;
+        }
+        return val.trim();
+      },
+    });
+    if (!isConfirmed) return;
+    await NovedadService.iniciarProceso(item.idNovedad, planAccion);
+  } else if (nuevoEstado === 'cerrada') {
+    const { value: solucion, isConfirmed } = await Swal.fire({
+      title: 'Cerrar Novedad',
+      text: 'Describe la solución aplicada:',
+      input: 'textarea',
+      inputPlaceholder: 'Describe la solución...',
+      inputAttributes: { required: 'required' },
+      showCancelButton: true,
+      confirmButtonText: 'Cerrar novedad',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#27ae60',
+      cancelButtonColor: '#64748b',
+      reverseButtons: true,
+      preConfirm: (val) => {
+        if (!val || !val.trim()) {
+          Swal.showValidationMessage('La solución es obligatoria');
+          return false;
+        }
+        return val.trim();
+      },
+    });
+    if (!isConfirmed) return;
+    await NovedadService.cerrar(item.idNovedad, solucion);
+  }
+  await cargarDatos();
+  swalSuccess(nuevoEstado === 'en_proceso' ? 'Proceso iniciado correctamente.' : 'Novedad cerrada correctamente.');
+};
+
 const goPage = (p) => { if (p >= 1 && p <= totalPages.value) currentPage.value = p; };
+
+const prioridadLabel = (p) => {
+  if (p == null) return 'Sin prioridad';
+  return p === 1 ? 'Alta' : p === 2 ? 'Media' : p === 3 ? 'Baja' : 'Sin prioridad';
+};
 
 const formatFecha = (fecha) => {
   if (!fecha) return '—';
   try {
     const d = new Date(fecha);
-    return d.toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
   } catch {
     return fecha;
   }
@@ -444,6 +532,7 @@ onMounted(async () => {
             <tr>
               <th>T&iacute;tulo</th>
               <th>Tipo</th>
+              <th>Prioridad</th>
               <th>Estado</th>
               <th>Fecha Reporte</th>
               <th class="text-right">Acciones</th>
@@ -473,6 +562,10 @@ onMounted(async () => {
               </td>
 
               <td>
+                <span class="prioridad-badge" :class="'prio-' + (n.prioridad || 0)">{{ prioridadLabel(n.prioridad) }}</span>
+              </td>
+
+              <td>
                 <span class="estado-badge" :style="{ background: (estadoConfig[n.estado] || estadoConfig.abierta).bg, borderColor: (estadoConfig[n.estado] || estadoConfig.abierta).dot }">
                   <span class="estado-dot" :style="{ background: (estadoConfig[n.estado] || estadoConfig.abierta).dot }"></span>
                   {{ (estadoConfig[n.estado] || estadoConfig.abierta).label }}
@@ -485,6 +578,16 @@ onMounted(async () => {
 
               <td class="text-right">
                 <div class="actions-row">
+                  <template v-if="n.estado === 'abierta'">
+                    <button class="action-btn process" title="Iniciar Proceso" @click="cambiarEstado(n, 'en_proceso')">
+                      <span class="icon">engineering</span>
+                    </button>
+                  </template>
+                  <template v-else-if="n.estado === 'en_proceso'">
+                    <button class="action-btn close-novedad" title="Cerrar" @click="cambiarEstado(n, 'cerrada')">
+                      <span class="icon">check_circle</span>
+                    </button>
+                  </template>
                   <button class="action-btn view" title="Ver detalle" @click="openVer(n)">
                     <span class="icon">visibility</span>
                   </button>
@@ -499,7 +602,7 @@ onMounted(async () => {
             </tr>
 
             <tr v-if="paginated.length === 0">
-              <td colspan="5" class="empty-state">
+              <td colspan="6" class="empty-state">
                 <span class="icon empty-icon">campaign</span>
                 <p>{{ isLoading ? 'Cargando novedades...' : 'No se encontraron novedades con los filtros aplicados.' }}</p>
               </td>
@@ -586,6 +689,22 @@ onMounted(async () => {
                 <span class="detail-value">{{ formatFecha(selectedNovedad.fechaReporte) }}</span>
               </div>
               <div class="detail-item">
+                <span class="detail-label">Prioridad</span>
+                <span class="detail-value">{{ prioridadLabel(selectedNovedad.prioridad) }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Plan de Acci&oacute;n</span>
+                <span class="detail-value">{{ selectedNovedad.planAccion || '—' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Soluci&oacute;n</span>
+                <span class="detail-value">{{ selectedNovedad.solucion || '—' }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Fecha Inicio Proceso</span>
+                <span class="detail-value">{{ formatFecha(selectedNovedad.fechaInicioProceso) }}</span>
+              </div>
+              <div class="detail-item">
                 <span class="detail-label">Fecha de Cierre</span>
                 <span class="detail-value">{{ formatFecha(selectedNovedad.fechaCierre) }}</span>
               </div>
@@ -656,6 +775,35 @@ onMounted(async () => {
                     <option value="en_proceso">En Proceso</option>
                     <option value="cerrada">Cerrada</option>
                   </select>
+                </div>
+              </div>
+
+              <div class="form-field">
+                <label class="form-label">Prioridad</label>
+                <div class="form-input-wrap">
+                  <span class="form-icon icon">priority_high</span>
+                  <select v-model.number="form.prioridad" class="form-input">
+                    <option :value="null">Sin prioridad</option>
+                    <option :value="1">Alta</option>
+                    <option :value="2">Media</option>
+                    <option :value="3">Baja</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-field full" v-if="modalMode === 'editar' && form.estado === 'en_proceso'">
+                <label class="form-label">Plan de Acci&oacute;n</label>
+                <div class="form-input-wrap">
+                  <span class="form-icon icon">assignment</span>
+                  <textarea v-model="form.planAccion" class="form-input form-textarea" placeholder="Describe el plan de acci&oacute;n a seguir..."></textarea>
+                </div>
+              </div>
+
+              <div class="form-field full" v-if="modalMode === 'editar' && form.estado === 'cerrada'">
+                <label class="form-label">Soluci&oacute;n</label>
+                <div class="form-input-wrap">
+                  <span class="form-icon icon">check_circle</span>
+                  <textarea v-model="form.solucion" class="form-input form-textarea" placeholder="Describe la soluci&oacute;n aplicada..."></textarea>
                 </div>
               </div>
 
@@ -833,6 +981,12 @@ onMounted(async () => {
 .estado-badge { display:inline-flex; align-items:center; gap:.375rem; padding:.25rem .75rem; border-radius:99px; font-size:.625rem; font-weight:800; border:1px solid transparent; }
 .estado-dot   { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
 
+.prioridad-badge { display:inline-flex; align-items:center; padding:.25rem .65rem; border-radius:99px; font-size:.6rem; font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
+.prioridad-badge.prio-1 { background:#fee2e2; color:#991b1b; }
+.prioridad-badge.prio-2 { background:#fef3c7; color:#92400e; }
+.prioridad-badge.prio-3 { background:#dbeafe; color:#1e40af; }
+.prioridad-badge.prio-0 { background:#f1f5f9; color:#94a3b8; }
+
 .fecha-txt { font-size:.75rem; font-weight:600; color:#64748b; white-space:nowrap; }
 
 .actions-row { display:flex; align-items:center; justify-content:flex-end; gap:2px; }
@@ -841,6 +995,8 @@ onMounted(async () => {
 .action-btn.view:hover   { background:rgba(15,76,129,.08); color:#0f4c81; }
 .action-btn.edit:hover   { background:rgba(15,76,129,.08); color:#0f4c81; }
 .action-btn.delete:hover { background:rgba(186,26,26,.08);  color:#ba1a1a; }
+.action-btn.process:hover { background:rgba(245,158,11,.08); color:#f59e0b; }
+.action-btn.close-novedad:hover { background:rgba(39,174,96,.08); color:#27ae60; }
 .action-btn:disabled { opacity:.4; cursor:not-allowed; }
 
 .empty-state { text-align:center; padding:3rem 1rem; color:#94a3b8; }
@@ -1001,9 +1157,10 @@ select.form-input { cursor:pointer; }
   }
   .data-row td:nth-child(1)::before { content:'Titulo'; }
   .data-row td:nth-child(2)::before { content:'Tipo'; }
-  .data-row td:nth-child(3)::before { content:'Estado'; }
-  .data-row td:nth-child(4)::before { content:'Fecha Reporte'; }
-  .data-row td:nth-child(5)::before { content:'Acciones'; }
+  .data-row td:nth-child(3)::before { content:'Prioridad'; }
+  .data-row td:nth-child(4)::before { content:'Estado'; }
+  .data-row td:nth-child(5)::before { content:'Fecha Reporte'; }
+  .data-row td:nth-child(6)::before { content:'Acciones'; }
   .data-row td:last-child { border-bottom:none; }
   .data-row td.text-right { text-align:left; }
   .actions-row { justify-content:flex-start; flex-wrap:wrap; gap:.4rem; }

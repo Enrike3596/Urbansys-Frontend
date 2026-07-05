@@ -23,7 +23,11 @@ function toFrontendNovedad(dto) {
 		descripcion: dto.descripcion || '',
 		tipo: normalizeValue(dto.tipo),
 		estado: normalizeValue(dto.estado),
+		prioridad: dto.prioridad ?? null,
+		planAccion: dto.planAccion || '',
+		solucion: dto.solucion || '',
 		fechaReporte: dto.fechaReporte || '',
+		fechaInicioProceso: dto.fechaInicioProceso || '',
 		fechaCierre: dto.fechaCierre || '',
 	}
 }
@@ -37,7 +41,11 @@ function toBackendPayload(form) {
 		descripcion: form?.descripcion?.trim() || '',
 		tipo: form?.tipo ? String(form.tipo).toUpperCase() : null,
 		estado: form?.estado ? String(form.estado).toUpperCase() : null,
+		prioridad: form?.prioridad ?? null,
+		planAccion: form?.planAccion?.trim() || null,
+		solucion: form?.solucion?.trim() || null,
 		fechaReporte: form?.fechaReporte || null,
+		fechaInicioProceso: form?.fechaInicioProceso || null,
 		fechaCierre: form?.fechaCierre || null,
 	}
 }
@@ -77,6 +85,26 @@ export default {
 
 	async eliminar(id) {
 		return apiDelete(`/novedades/${id}`, true)
+	},
+
+	async iniciarProceso(id, planAccion) {
+		const current = await this.obtenerPorId(id)
+		if (!current) throw new Error('Novedad no encontrada')
+		return this.actualizar(id, {
+			...current,
+			estado: 'en_proceso',
+			planAccion,
+		})
+	},
+
+	async cerrar(id, solucion) {
+		const current = await this.obtenerPorId(id)
+		if (!current) throw new Error('Novedad no encontrada')
+		return this.actualizar(id, {
+			...current,
+			estado: 'cerrada',
+			solucion,
+		})
 	},
 
 	async buscarPorFecha(fecha) {
