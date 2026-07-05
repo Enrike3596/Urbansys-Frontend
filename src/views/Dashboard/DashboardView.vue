@@ -294,10 +294,6 @@ onMounted(async () => {
               <line x1="22" y1="155" x2="278" y2="155" stroke="#e2e8f0" stroke-width="1" />
               <g v-for="col in novedadesColumnas" :key="col.tipo">
                 <rect :x="col.x" :y="col.y" :width="col.w" :height="col.h" :fill="tipoColors[col.tipo] || '#94a3b8'" rx="4" ry="4" />
-                <text :x="col.x + col.w / 2" :y="col.y - 8" text-anchor="middle" font-size="12"
-                  font-family="Plus Jakarta Sans,sans-serif" font-weight="800" fill="#0d1b2a">{{ col.total }}</text>
-                <text :x="col.x + col.w / 2" y="175" text-anchor="middle" font-size="9"
-                  font-family="Plus Jakarta Sans,sans-serif" font-weight="700" fill="#475569">{{ tipoLabels[col.tipo] || col.tipo }}</text>
               </g>
               <text v-if="novedadesColumnas.length === 0" x="150" y="100" text-anchor="middle" font-size="12" fill="#94a3b8">Sin datos</text>
             </svg>
