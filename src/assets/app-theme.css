@@ -451,3 +451,296 @@ a,
   .detail-card-grid { grid-template-columns:1fr; }
   .detail-metrics-row { grid-template-columns:1fr; }
 }
+
+/* Dark mode system-wide surfaces */
+.dark body {
+  background:
+    radial-gradient(1200px circle at top left, rgba(59, 130, 246, 0.16), transparent 34%),
+    radial-gradient(900px circle at top right, rgba(14, 165, 233, 0.08), transparent 28%),
+    var(--app-bg);
+}
+
+.dark .topbar,
+.dark .sidebar,
+.dark .table-card,
+.dark .metric-card,
+.dark .modal-box,
+.dark .notif-dropdown,
+.dark .detail-card,
+.dark .quick-actions,
+.dark .upload-instructions,
+.dark .template-card,
+.dark .upload-section,
+.dark .file-info,
+.dark .bulk-preview,
+.dark .bulk-result,
+.dark .detail-section,
+.dark .security-notice,
+.dark .profile-hero {
+  background: rgba(15, 23, 36, 0.92);
+  border-color: rgba(37, 52, 71, 0.95);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+}
+
+.dark .topbar {
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.dark .sidebar-brand,
+.dark .sidebar-footer,
+.dark .modal-header,
+.dark .modal-footer,
+.dark .filter-bar,
+.dark .pagination-bar,
+.dark .table-head-bar,
+.dark .search-wrapper,
+.dark .notif-header {
+  border-color: rgba(37, 52, 71, 0.95);
+}
+
+.dark .nav-item,
+.dark .icon-btn,
+.dark .user-info,
+.dark .btn-secondary,
+.dark .page-btn,
+.dark .action-btn,
+.dark .filter-select,
+.dark .search-input,
+.dark .form-input,
+.dark .autocomplete-dropdown,
+.dark .autocomplete-item,
+.dark .quick-btn,
+.dark .btn-primary,
+.dark .btn-amber {
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.dark .nav-item:hover,
+.dark .nav-item.active,
+.dark .icon-btn:hover,
+.dark .icon-btn.active,
+.dark .user-info:hover,
+.dark .btn-secondary,
+.dark .page-btn,
+.dark .action-btn,
+.dark .filter-select,
+.dark .search-input,
+.dark .form-input,
+.dark .autocomplete-dropdown,
+.dark .quick-actions,
+.dark .bulk-preview-title,
+.dark .detail-list-item,
+.dark .mini-metric,
+.dark .empty-detail-msg {
+  background: rgba(20, 30, 44, 0.96);
+}
+
+.dark .search-input::placeholder,
+.dark .form-input::placeholder,
+.dark .search-icon,
+.dark .form-icon,
+.dark .page-ellipsis,
+.dark .text-muted,
+.dark .pagination-info,
+.dark .detail-label,
+.dark .metric-lbl,
+.dark .page-sub,
+.dark .modal-sub,
+.dark .notif-time,
+.dark .user-role,
+.dark .supported-formats,
+.dark .file-size,
+.dark .detail-section-title,
+.dark .instruction-content p,
+.dark .instruction-content li,
+.dark .template-content p,
+.dark .bulk-summary,
+.dark .bulk-errors-title {
+  color: #94a3b8;
+}
+
+.dark .page-title,
+.dark .table-head-title,
+.dark .modal-title,
+.dark .detail-hero-title,
+.dark .detail-card-title,
+.dark .detail-value,
+.dark .user-name,
+.dark .notif-title,
+.dark .template-content h4,
+.dark .instruction-header h4,
+.dark .upload-title,
+.dark .file-name,
+.dark .mini-metric-value,
+.dark .metric-val {
+  color: #f3f8ff;
+}
+
+.dark .data-table thead tr,
+.dark .bulk-preview-title,
+.dark .detail-hero,
+.dark .notif-list,
+.dark .notif-item,
+.dark .bulk-table th,
+.dark .bulk-table td,
+.dark .detail-list-item,
+.dark .mini-metric,
+.dark .quick-btn,
+.dark .detail-card,
+.dark .modal-body,
+.dark .data-row {
+  border-color: rgba(37, 52, 71, 0.92);
+}
+
+.dark .data-row,
+.dark .page-btn,
+.dark .btn-secondary,
+.dark .filter-select,
+.dark .search-input,
+.dark .form-input,
+.dark .autocomplete-item,
+.dark .notif-item,
+.dark .detail-list-item,
+.dark .mini-metric,
+.dark .quick-btn.blue,
+.dark .quick-btn.green,
+.dark .quick-btn.amber,
+.dark .quick-btn.red {
+  color: #dbe4f0;
+}
+
+.dark .data-table thead tr {
+  background: rgba(22, 33, 48, 0.96);
+}
+
+.dark .data-row:hover td,
+.dark .autocomplete-item:hover,
+.dark .notif-item:hover,
+.dark .icon-btn:hover,
+.dark .user-info:hover,
+.dark .page-btn:hover:not(:disabled),
+.dark .action-btn.view:hover,
+.dark .action-btn.edit:hover,
+.dark .action-btn.delete:hover,
+.dark .quick-btn:hover {
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.dark .data-row td::before,
+.dark .mini-metric-label,
+.dark .detail-list-copy,
+.dark .swal-prompt-description {
+  color: #9fb0c7;
+}
+
+.dark .detail-hero {
+  background: linear-gradient(180deg, rgba(17, 26, 40, 0.98), rgba(12, 19, 31, 0.98));
+  border-color: rgba(37, 52, 71, 0.95);
+}
+
+.dark .soft-chip,
+.dark .detail-meta-pill,
+.dark .estado-badge,
+.dark .tipo-badge,
+.dark .rol-badge,
+.dark .prioridad-badge,
+.dark .fecha-txt,
+.dark .residente-selected-info,
+.dark .file-info,
+.dark .bulk-result,
+.dark .security-notice,
+.dark .empty-detail-msg,
+.dark .motivo-text {
+  background: rgba(17, 26, 40, 0.96);
+  border-color: rgba(37, 52, 71, 0.95);
+}
+
+.dark .soft-chip,
+.dark .detail-meta-pill,
+.dark .estado-badge,
+.dark .tipo-badge,
+.dark .rol-badge,
+.dark .prioridad-badge,
+.dark .page-btn,
+.dark .btn-secondary,
+.dark .form-input,
+.dark .filter-select,
+.dark .search-input,
+.dark .action-btn,
+.dark .quick-btn,
+.dark .upload-section,
+.dark .upload-instructions,
+.dark .template-card,
+.dark .file-info,
+.dark .bulk-preview,
+.dark .bulk-result,
+.dark .notif-dropdown,
+.dark .modal-box,
+.dark .detail-card,
+.dark .detail-list-item,
+.dark .mini-metric,
+.dark .table-card,
+.dark .metric-card {
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+}
+
+.dark .btn-primary,
+.dark .new-entry-btn,
+.dark .create-btn,
+.dark .btn-amber,
+.dark .detail-list-index,
+.dark .detail-hero-icon,
+.dark .user-avatar,
+.dark .mini-metric-value {
+  background: linear-gradient(135deg, #2563eb, #38bdf8);
+}
+
+.dark .btn-primary,
+.dark .new-entry-btn,
+.dark .create-btn,
+.dark .btn-amber,
+.dark .btn-secondary,
+.dark .quick-btn,
+.dark .page-btn.active {
+  color: #f8fbff;
+}
+
+.dark .btn-secondary,
+.dark .page-btn,
+.dark .action-btn,
+.dark .quick-btn,
+.dark .icon-btn,
+.dark .user-info,
+.dark .filter-select,
+.dark .search-input,
+.dark .form-input {
+  border-color: rgba(37, 52, 71, 0.95);
+}
+
+.dark .btn-secondary:hover,
+.dark .page-btn:hover:not(:disabled),
+.dark .action-btn:hover,
+.dark .quick-btn:hover,
+.dark .icon-btn:hover,
+.dark .user-info:hover {
+  background: rgba(37, 99, 235, 0.14);
+}
+
+.dark .swal2-popup.swal-custom-popup,
+.dark .swal2-popup.swal-prompt-popup {
+  background: #0f1724;
+  color: #e5edf8;
+  border: 1px solid rgba(37, 52, 71, 0.95);
+}
+
+.dark .swal2-title.swal-custom-title,
+.dark .swal2-popup.swal-prompt-popup .swal2-title.swal-prompt-title {
+  color: #f3f8ff;
+}
+
+.dark .swal2-html-container.swal-custom-text,
+.dark .swal-prompt-description,
+.dark .swal2-popup.swal-prompt-popup .swal2-input-label {
+  color: #a7b4c7;
+}

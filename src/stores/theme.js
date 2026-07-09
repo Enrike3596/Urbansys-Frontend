@@ -2,12 +2,9 @@ import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 
 export const useThemeStore = defineStore('theme', () => {
-  const isDark = ref(false)
-
   const stored = localStorage.getItem('urbansys-theme')
-  if (stored === 'dark') {
-    isDark.value = true
-  }
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+  const isDark = ref(stored ? stored === 'dark' : prefersDark)
 
   function apply(dark) {
     document.documentElement.classList.toggle('dark', dark)

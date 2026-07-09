@@ -14,16 +14,16 @@ useAuthCheck()
 
 <style>
 :root {
-  --app-bg: #eef1f6;
+  --app-bg: #f4f7fb;
   --app-text: #0d1b2a;
 
-  --bg-page: #eef1f6;
+  --bg-page: #f4f7fb;
   --bg-surface: #ffffff;
   --bg-surface-hover: #f1f5f9;
   --bg-elevated: #ffffff;
   --bg-input: #f1f5f9;
-  --bg-sidebar: #ffffff;
-  --bg-surface-translucent: rgba(255, 255, 255, 0.98);
+  --bg-sidebar: rgba(255, 255, 255, 0.94);
+  --bg-surface-translucent: rgba(255, 255, 255, 0.86);
 
   --text-primary: #0d1b2a;
   --text-secondary: #64748b;
@@ -41,40 +41,40 @@ useAuthCheck()
   --bg-danger: #fff0f0;
   --success: #27ae60;
 
-  --shadow-sm: 0 2px 6px rgba(0, 53, 95, 0.08);
-  --shadow-md: 0 8px 24px rgba(0, 53, 95, 0.12);
+  --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 10px 28px rgba(15, 23, 42, 0.1);
 }
 
 .dark {
-  --app-bg: #0b1120;
-  --app-text: #e2e8f0;
+  --app-bg: #07111f;
+  --app-text: #dbe4f0;
 
-  --bg-page: #0b1120;
-  --bg-surface: #141d2b;
-  --bg-surface-hover: #1e293b;
-  --bg-elevated: #1a2332;
-  --bg-input: #1e293b;
-  --bg-sidebar: #0f1729;
-  --bg-surface-translucent: rgba(20, 29, 43, 0.95);
+  --bg-page: #07111f;
+  --bg-surface: #0f1724;
+  --bg-surface-hover: #162235;
+  --bg-elevated: #111a28;
+  --bg-input: #132131;
+  --bg-sidebar: rgba(10, 18, 31, 0.96);
+  --bg-surface-translucent: rgba(15, 23, 36, 0.82);
 
-  --text-primary: #e2e8f0;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --text-heading: #f1f5f9;
+  --text-primary: #e5edf8;
+  --text-secondary: #a7b4c7;
+  --text-muted: #7e8ba0;
+  --text-heading: #f7fbff;
 
-  --border-color: #1e293b;
-  --border-light: #1e293b;
-  --border-divider: #2d3a4a;
+  --border-color: #1a2737;
+  --border-light: #162334;
+  --border-divider: #243447;
 
-  --primary: #3b82f6;
-  --primary-dark: #1d4ed8;
+  --primary: #60a5fa;
+  --primary-dark: #2563eb;
 
-  --danger: #ef4444;
-  --bg-danger: rgba(239, 68, 68, 0.1);
-  --success: #22c55e;
+  --danger: #f87171;
+  --bg-danger: rgba(248, 113, 113, 0.12);
+  --success: #34d399;
 
-  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.32);
+  --shadow-md: 0 16px 36px rgba(0, 0, 0, 0.44);
 }
 
 *,
@@ -89,12 +89,23 @@ html,
 body {
   width: 100%;
   height: 100%;
-  background: var(--app-bg);
+  background:
+    radial-gradient(1200px circle at top left, rgba(59, 130, 246, 0.14), transparent 34%),
+    radial-gradient(900px circle at top right, rgba(15, 76, 129, 0.08), transparent 26%),
+    var(--app-bg);
   color: var(--app-text);
   line-height: 1.4;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background 0.3s, color 0.3s;
+}
+
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
 }
 
 #app {
