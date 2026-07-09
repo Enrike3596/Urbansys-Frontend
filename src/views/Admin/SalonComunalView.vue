@@ -321,20 +321,44 @@ onMounted(() => {
               <button class="modal-close" @click="closeModal"><span class="icon">close</span></button>
             </div>
 
-            <div v-if="modalMode === 'ver' && selectedSalon" class="modal-body">
-              <div class="detail-grid">
-                <div class="detail-item">
-                  <span class="detail-label">Nombre</span>
-                  <p class="detail-value">{{ selectedSalon.nombre }}</p>
+            <div v-if="modalMode === 'ver' && selectedSalon" class="modal-body detail-modal-body">
+              <section class="detail-hero">
+                <div class="detail-hero-icon">
+                  <span class="icon">meeting_room</span>
                 </div>
-                <div class="detail-item">
-                  <span class="detail-label">Capacidad</span>
-                  <p class="detail-value">{{ selectedSalon.capacidad }}</p>
+                <div>
+                  <p class="detail-hero-kicker">Salón comunal #{{ selectedSalon.idSalonComunal }}</p>
+                  <h4 class="detail-hero-title">{{ selectedSalon.nombre }}</h4>
+                  <p class="detail-hero-sub">Capacidad para {{ selectedSalon.capacidad }} personas</p>
                 </div>
-                <div class="detail-item full">
-                  <span class="detail-label">Descripcion</span>
-                  <p class="detail-value">{{ selectedSalon.descripcion || 'Sin descripcion' }}</p>
+                <div class="detail-hero-meta">
+                  <span class="detail-meta-pill">
+                    <span class="icon">groups</span>
+                    {{ selectedSalon.capacidad }} cupos
+                  </span>
                 </div>
+              </section>
+
+              <div class="detail-card-grid">
+                <article class="detail-card">
+                  <p class="detail-card-title"><span class="icon">info</span> Datos generales</p>
+                  <div class="detail-grid compact-grid single-column">
+                    <div class="detail-item full">
+                      <span class="detail-label">Nombre</span>
+                      <p class="detail-value">{{ selectedSalon.nombre }}</p>
+                    </div>
+                    <div class="detail-item full">
+                      <span class="detail-label">Capacidad</span>
+                      <p class="detail-value">{{ selectedSalon.capacidad }}</p>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="detail-card detail-card-alert">
+                  <p class="detail-card-title"><span class="icon">description</span> Descripción</p>
+                  <p v-if="selectedSalon.descripcion" class="detail-value">{{ selectedSalon.descripcion }}</p>
+                  <p v-else class="empty-detail-msg">Sin descripcion.</p>
+                </article>
               </div>
 
               <div class="modal-footer">

@@ -434,34 +434,58 @@ onMounted(() => {
             </div>
 
             <!-- ── Modo ver ── -->
-            <div v-if="modalMode === 'ver' && selectedApt" class="modal-body">
-              <div class="detail-grid">
-                <div class="detail-item">
-                  <span class="detail-label">Número</span>
-                  <span class="detail-value">{{ selectedApt.numeroApartamento }}</span>
+            <div v-if="modalMode === 'ver' && selectedApt" class="modal-body detail-modal-body">
+              <section class="detail-hero">
+                <div class="detail-hero-icon">
+                  <span class="icon">apartment</span>
                 </div>
-                <div class="detail-item">
-                  <span class="detail-label">Piso</span>
-                  <span class="detail-value">Piso {{ selectedApt.piso }}</span>
+                <div>
+                  <p class="detail-hero-kicker">Apartamento #{{ selectedApt.idApartamento }}</p>
+                  <h4 class="detail-hero-title">{{ selectedApt.numeroApartamento }}</h4>
+                  <p class="detail-hero-sub">Piso {{ selectedApt.piso }} · Torre {{ getTorreLabel(selectedApt.torreId) }}</p>
                 </div>
-                <div class="detail-item">
-                  <span class="detail-label">Torre</span>
-                  <span class="detail-value">{{ getTorreLabel(selectedApt.torreId) }}</span>
-                </div>
-                <div class="detail-item full">
-                  <span class="detail-label">Estado</span>
+                <div class="detail-hero-meta">
                   <span
                     class="estado-badge"
                     :style="{
                       background: estadoConfig[selectedApt.estado]?.bg || '#f1f5f9',
                       color: estadoConfig[selectedApt.estado]?.color || '#475569',
+                      borderColor: estadoConfig[selectedApt.estado]?.dot || '#94a3b8',
                     }"
                   >
                     <span class="estado-dot" :style="{ background: estadoConfig[selectedApt.estado]?.dot || '#94a3b8' }"></span>
                     {{ (estadoConfig[selectedApt.estado]?.label || selectedApt.estado || 'SIN ESTADO').toUpperCase() }}
                   </span>
                 </div>
+              </section>
+
+              <div class="detail-card-grid">
+                <article class="detail-card">
+                  <p class="detail-card-title"><span class="icon">domain</span> Ubicación</p>
+                  <div class="detail-grid compact-grid single-column">
+                    <div class="detail-item full">
+                      <span class="detail-label">Número</span>
+                      <p class="detail-value">{{ selectedApt.numeroApartamento }}</p>
+                    </div>
+                    <div class="detail-item full">
+                      <span class="detail-label">Piso</span>
+                      <p class="detail-value">Piso {{ selectedApt.piso }}</p>
+                    </div>
+                    <div class="detail-item full">
+                      <span class="detail-label">Torre</span>
+                      <p class="detail-value">{{ getTorreLabel(selectedApt.torreId) }}</p>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="detail-card detail-card-alert">
+                  <p class="detail-card-title"><span class="icon">flag</span> Estado</p>
+                  <p class="empty-detail-msg" style="border-style:solid; background:#fff;">
+                    {{ (estadoConfig[selectedApt.estado]?.label || selectedApt.estado || 'Sin estado') }}
+                  </p>
+                </article>
               </div>
+
               <div class="modal-footer">
                 <button class="btn-secondary" @click="closeModal">Cerrar</button>
                 <button class="btn-primary" @click="openEditar(selectedApt)">

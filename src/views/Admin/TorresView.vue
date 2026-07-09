@@ -353,24 +353,38 @@ onMounted(() => {
             </div>
 
             <!-- ── Ver ── -->
-            <div v-if="modalMode==='ver' && selectedTorre" class="modal-body">
-
-              <!-- Hero torre -->
-              <div class="torre-hero">
-                <div class="torre-hero-icon">
+            <div v-if='modalMode==='ver' && selectedTorre' class="modal-body detail-modal-body">
+              <section class="detail-hero">
+                <div class="detail-hero-icon">
                   <span class="icon">domain</span>
                 </div>
-                <div class="torre-hero-info">
-                  <h4 class="torre-hero-name">{{ selectedTorre.nombre }}</h4>
-                  <p class="torre-hero-desc">Informacion general de la torre registrada.</p>
+                <div>
+                  <p class="detail-hero-kicker">Torre #{{ selectedTorre.idTorre ?? selectedTorre.id }}</p>
+                  <h4 class="detail-hero-title">{{ selectedTorre.nombre }}</h4>
+                  <p class="detail-hero-sub">Información general de la torre registrada.</p>
                 </div>
-              </div>
+                <div class="detail-hero-meta">
+                  <span class="detail-meta-pill">
+                    <span class="icon">apartment</span>
+                    {{ selectedTorre.numeroTorre ?? selectedTorre.numero }}
+                  </span>
+                </div>
+              </section>
 
-              <div class="detail-grid">
-                <div class="detail-item">
-                  <span class="detail-label">Numero Torre</span>
-                  <span class="num-badge" style="display:inline-flex">{{ selectedTorre.numeroTorre ?? selectedTorre.numero }}</span>
-                </div>
+              <div class="detail-card-grid">
+                <article class="detail-card">
+                  <p class="detail-card-title"><span class="icon">info</span> Datos generales</p>
+                  <div class="detail-grid compact-grid single-column">
+                    <div class="detail-item full">
+                      <span class="detail-label">Nombre</span>
+                      <p class="detail-value">{{ selectedTorre.nombre }}</p>
+                    </div>
+                    <div class="detail-item full">
+                      <span class="detail-label">Número de torre</span>
+                      <p class="detail-value">{{ selectedTorre.numeroTorre ?? selectedTorre.numero }}</p>
+                    </div>
+                  </div>
+                </article>
               </div>
 
               <div class="modal-footer">

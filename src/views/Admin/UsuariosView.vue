@@ -614,37 +614,50 @@ onMounted(() => {
             </div>
 
             <!-- ── Ver ── -->
-            <div v-if="modalMode==='ver' && selectedUser" class="modal-body">
-              <!-- Hero -->
-              <div class="profile-hero">
-                <div class="profile-avatar-lg" :style="{ background: avatarColor(fullName(selectedUser)).bg, color: avatarColor(fullName(selectedUser)).color }">
+            <div v-if="modalMode==='ver' && selectedUser" class="modal-body detail-modal-body">
+              <section class="detail-hero">
+                <div
+                  class="detail-hero-icon"
+                  :style="{ background: avatarColor(fullName(selectedUser)).bg, color: avatarColor(fullName(selectedUser)).color }"
+                >
                   {{ initials(fullName(selectedUser)) }}
                 </div>
-                <div class="profile-info">
-                  <h4 class="profile-name">{{ fullName(selectedUser) }}</h4>
-                  <p class="profile-email">{{ selectedUser.email }}</p>
-                  <div class="profile-badges">
-                    <span class="rol-badge" :style="{ background: rolConfig[selectedUser.rol]?.bg, color: rolConfig[selectedUser.rol]?.color, borderColor: rolConfig[selectedUser.rol]?.border }">
-                      <span class="icon rol-icon">{{ rolConfig[selectedUser.rol]?.icon }}</span>
-                      {{ rolConfig[selectedUser.rol]?.label }}
-                    </span>
-                    <span class="estado-badge" :style="{ background: estadoConfig[selectedUser.estado].bg, color: estadoConfig[selectedUser.estado].color }">
-                      <span class="estado-dot" :style="{ background: estadoConfig[selectedUser.estado].dot }"></span>
-                      {{ estadoConfig[selectedUser.estado].label }}
-                    </span>
-                  </div>
+                <div>
+                  <p class="detail-hero-kicker">Usuario #{{ selectedUser.id }}</p>
+                  <h4 class="detail-hero-title">{{ fullName(selectedUser) }}</h4>
+                  <p class="detail-hero-sub">{{ selectedUser.email }}</p>
                 </div>
-              </div>
+                <div class="detail-hero-meta">
+                  <span class="rol-badge" :style="{ background: rolConfig[selectedUser.rol]?.bg, color: rolConfig[selectedUser.rol]?.color, borderColor: rolConfig[selectedUser.rol]?.border }">
+                    <span class="icon rol-icon">{{ rolConfig[selectedUser.rol]?.icon }}</span>
+                    {{ rolConfig[selectedUser.rol]?.label }}
+                  </span>
+                  <span class="estado-badge" :style="{ background: estadoConfig[selectedUser.estado].bg, color: estadoConfig[selectedUser.estado].color }">
+                    <span class="estado-dot" :style="{ background: estadoConfig[selectedUser.estado].dot }"></span>
+                    {{ estadoConfig[selectedUser.estado].label }}
+                  </span>
+                </div>
+              </section>
 
-              <div class="detail-grid">
-                <div class="detail-item">
-                  <span class="detail-label">Identificación</span>
-                  <span class="detail-value">{{ selectedUser.identificacion }}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Teléfono</span>
-                  <span class="detail-value">{{ selectedUser.telefono }}</span>
-                </div>
+              <div class="detail-card-grid">
+                <article class="detail-card">
+                  <p class="detail-card-title"><span class="icon">badge</span> Identidad</p>
+                  <div class="detail-grid compact-grid single-column">
+                    <div class="detail-item full">
+                      <span class="detail-label">Identificación</span>
+                      <p class="detail-value">{{ selectedUser.identificacion }}</p>
+                    </div>
+                    <div class="detail-item full">
+                      <span class="detail-label">Teléfono</span>
+                      <p class="detail-value">{{ selectedUser.telefono }}</p>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="detail-card detail-card-alert">
+                  <p class="detail-card-title"><span class="icon">account_circle</span> Estado de la cuenta</p>
+                  <p class="detail-value">{{ estadoConfig[selectedUser.estado].label }}</p>
+                </article>
               </div>
 
               <!-- Acciones rápidas en modal -->

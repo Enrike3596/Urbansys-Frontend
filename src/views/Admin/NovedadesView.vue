@@ -4,8 +4,7 @@ import NovedadService from '../../services/Novedad.Service';
 import TorreService from '../../services/Torre.Service';
 import ApartamentoService from '../../services/Apartamento.Service';
 import ResidenteService from '../../services/Residente.Service';
-import { swalConfirmDelete, swalError, swalSuccess } from '@/utils/sweetalert';
-import Swal from 'sweetalert2';
+import { swalConfirmDelete, swalError, swalSuccess, swalTextareaPrompt } from '@/utils/sweetalert';
 
 const searchQuery  = ref('');
 const filterTipo   = ref('todos');
@@ -348,48 +347,26 @@ const eliminar = async (id) => {
 
 const cambiarEstado = async (item, nuevoEstado) => {
   if (nuevoEstado === 'en_proceso') {
-    const { value: planAccion, isConfirmed } = await Swal.fire({
+    const { value: planAccion, isConfirmed } = await swalTextareaPrompt({
       title: 'Iniciar Proceso',
-      text: 'Describe el plan de acción a seguir:',
-      input: 'textarea',
-      inputPlaceholder: 'Describe el plan de acción...',
-      inputAttributes: { required: 'required' },
-      showCancelButton: true,
+      description: 'Describe el plan de acción a seguir para dejar trazabilidad clara del caso.',
+      placeholder: 'Describe el plan de acción...',
       confirmButtonText: 'Iniciar proceso',
-      cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#f59e0b',
-      cancelButtonColor: '#64748b',
-      reverseButtons: true,
-      preConfirm: (val) => {
-        if (!val || !val.trim()) {
-          Swal.showValidationMessage('El plan de acción es obligatorio');
-          return false;
-        }
-        return val.trim();
-      },
+      icon: 'play_arrow',
+      accent: '#f59e0b',
+      validationMessage: 'El plan de acción es obligatorio',
     });
     if (!isConfirmed) return;
     await NovedadService.iniciarProceso(item.idNovedad, planAccion);
   } else if (nuevoEstado === 'cerrada') {
-    const { value: solucion, isConfirmed } = await Swal.fire({
+    const { value: solucion, isConfirmed } = await swalTextareaPrompt({
       title: 'Cerrar Novedad',
-      text: 'Describe la solución aplicada:',
-      input: 'textarea',
-      inputPlaceholder: 'Describe la solución...',
-      inputAttributes: { required: 'required' },
-      showCancelButton: true,
+      description: 'Registra la solución aplicada para conservar un historial claro del cierre.',
+      placeholder: 'Describe la solución...',
       confirmButtonText: 'Cerrar novedad',
-      cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#27ae60',
-      cancelButtonColor: '#64748b',
-      reverseButtons: true,
-      preConfirm: (val) => {
-        if (!val || !val.trim()) {
-          Swal.showValidationMessage('La solución es obligatoria');
-          return false;
-        }
-        return val.trim();
-      },
+      icon: 'task_alt',
+      accent: '#27ae60',
+      validationMessage: 'La solución es obligatoria',
     });
     if (!isConfirmed) return;
     await NovedadService.cerrar(item.idNovedad, solucion);
@@ -657,69 +634,80 @@ onMounted(async () => {
           </div>
 
           <!-- ── Ver ── -->
-          <div v-if="modalMode === 'ver' && selectedNovedad" class="modal-body">
-            <div class="novedad-hero">
-              <div class="novedad-hero-icon" :style="{ background: (tipoConfig[selectedNovedad.tipo] || tipoConfig.otro).bg }">
-                <span class="icon" :style="{ color: (tipoConfig[selectedNovedad.tipo] || tipoConfig.otro).color }">
-                  {{ (tipoConfig[selectedNovedad.tipo] || tipoConfig.otro).icon }}
+          <div v-if="modalMode === 'ver' && selectedNovedad" class="modal-body detail-modal-body">
+            <section class="detail-hero">
+              <div class="detail-hero-icon" :style="{ background: (tipoConfig[selectedNovedad.tipo] || tipoConfig.otro).bg, color: (tipoConfig[selectedNovedad.tipo] || tipoConfig.otro).color }">
+                <span class="icon">{{ (tipoConfig[selectedNovedad.tipo] || tipoConfig.otro).icon }}</span>
+              </div>
+              <div>
+                <p class="detail-hero-kicker">Novedad #{{ selectedNovedad.idNovedad ?? selectedNovedad.id }}</p>
+                <h4 class="detail-hero-title">{{ selectedNovedad.titulo }}</h4>
+                <p class="detail-hero-sub">{{ selectedNovedad.descripcion || 'Sin descripción.' }}</p>
+              </div>
+              <div class="detail-hero-meta">
+                <span class="tipo-badge" :style="{ background: (tipoConfig[selectedNovedad.tipo] || tipoConfig.otro).bg, color: (tipoConfig[selectedNovedad.tipo] || tipoConfig.otro).color }">
+                  {{ (tipoConfig[selectedNovedad.tipo] || tipoConfig.otro).label }}
+                </span>
+                <span class="estado-badge" :style="{ background: (estadoConfig[selectedNovedad.estado] || estadoConfig.abierta).bg, borderColor: (estadoConfig[selectedNovedad.estado] || estadoConfig.abierta).dot }">
+                  <span class="estado-dot" :style="{ background: (estadoConfig[selectedNovedad.estado] || estadoConfig.abierta).dot }"></span>
+                  {{ (estadoConfig[selectedNovedad.estado] || estadoConfig.abierta).label }}
                 </span>
               </div>
-              <div class="novedad-hero-info">
-                <h4 class="novedad-hero-titulo">{{ selectedNovedad.titulo }}</h4>
-                <div class="novedad-hero-badges">
-                  <span class="tipo-badge" :style="{ background: (tipoConfig[selectedNovedad.tipo] || tipoConfig.otro).bg, color: (tipoConfig[selectedNovedad.tipo] || tipoConfig.otro).color }">
-                    {{ (tipoConfig[selectedNovedad.tipo] || tipoConfig.otro).label }}
-                  </span>
-                  <span class="estado-badge" :style="{ background: (estadoConfig[selectedNovedad.estado] || estadoConfig.abierta).bg, borderColor: (estadoConfig[selectedNovedad.estado] || estadoConfig.abierta).dot }">
-                    <span class="estado-dot" :style="{ background: (estadoConfig[selectedNovedad.estado] || estadoConfig.abierta).dot }"></span>
-                    {{ (estadoConfig[selectedNovedad.estado] || estadoConfig.abierta).label }}
-                  </span>
+            </section>
+
+            <div class="detail-card-grid">
+              <article class="detail-card">
+                <p class="detail-card-title"><span class="icon">description</span> Descripción</p>
+                <p class="detail-value" style="font-weight:600; color:#334155; line-height:1.6;">{{ selectedNovedad.descripcion || 'Sin descripción.' }}</p>
+              </article>
+
+              <article class="detail-card">
+                <p class="detail-card-title"><span class="icon">info</span> Gestión</p>
+                <div class="detail-grid compact-grid single-column">
+                  <div class="detail-item full">
+                    <span class="detail-label">Fecha de reporte</span>
+                    <p class="detail-value">{{ formatFecha(selectedNovedad.fechaReporte) }}</p>
+                  </div>
+                  <div class="detail-item full">
+                    <span class="detail-label">Prioridad</span>
+                    <p class="detail-value">{{ prioridadLabel(selectedNovedad.prioridad) }}</p>
+                  </div>
+                  <div class="detail-item full">
+                    <span class="detail-label">Plan de acción</span>
+                    <p class="detail-value">{{ selectedNovedad.planAccion || '—' }}</p>
+                  </div>
+                  <div class="detail-item full">
+                    <span class="detail-label">Solución</span>
+                    <p class="detail-value">{{ selectedNovedad.solucion || '—' }}</p>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </article>
 
-            <div class="detail-section">
-              <p class="detail-section-title">Descripci&oacute;n</p>
-              <p class="detail-desc-text">{{ selectedNovedad.descripcion || 'Sin descripci&oacute;n.' }}</p>
-            </div>
-
-            <div class="detail-grid">
-              <div class="detail-item">
-                <span class="detail-label">Fecha de Reporte</span>
-                <span class="detail-value">{{ formatFecha(selectedNovedad.fechaReporte) }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Prioridad</span>
-                <span class="detail-value">{{ prioridadLabel(selectedNovedad.prioridad) }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Plan de Acci&oacute;n</span>
-                <span class="detail-value">{{ selectedNovedad.planAccion || '—' }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Soluci&oacute;n</span>
-                <span class="detail-value">{{ selectedNovedad.solucion || '—' }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Fecha Inicio Proceso</span>
-                <span class="detail-value">{{ formatFecha(selectedNovedad.fechaInicioProceso) }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Fecha de Cierre</span>
-                <span class="detail-value">{{ formatFecha(selectedNovedad.fechaCierre) }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Reportado por</span>
-                <span class="detail-value">{{ verReportadoPorNombre }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Torre</span>
-                <span class="detail-value">{{ verTorreNombre }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="detail-label">Apartamento</span>
-                <span class="detail-value">{{ verApartamentoLabel }}</span>
-              </div>
+              <article class="detail-card detail-card-alert">
+                <p class="detail-card-title"><span class="icon">schedule</span> Seguimiento</p>
+                <div class="detail-grid compact-grid">
+                  <div class="detail-item">
+                    <span class="detail-label">Inicio proceso</span>
+                    <p class="detail-value">{{ formatFecha(selectedNovedad.fechaInicioProceso) }}</p>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Fecha de cierre</span>
+                    <p class="detail-value">{{ formatFecha(selectedNovedad.fechaCierre) }}</p>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Reportado por</span>
+                    <p class="detail-value">{{ verReportadoPorNombre }}</p>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Torre</span>
+                    <p class="detail-value">{{ verTorreNombre }}</p>
+                  </div>
+                  <div class="detail-item full">
+                    <span class="detail-label">Apartamento</span>
+                    <p class="detail-value">{{ verApartamentoLabel }}</p>
+                  </div>
+                </div>
+              </article>
             </div>
 
             <div class="modal-footer">

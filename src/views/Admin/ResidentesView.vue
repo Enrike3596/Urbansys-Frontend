@@ -39,8 +39,8 @@ const bulkFileInputRef = ref(null)
 const isBulkDragActive = ref(false)
 
 const BULK_HEADERS = [
-  'nombreUsuario',
-  'apellidoUsuario',
+  'nombre',
+  'apellido',
   'identificacionUsuario',
   'emailUsuario',
   'claveUsuario',
@@ -55,11 +55,15 @@ const BULK_HEADERS = [
   'mascotasTipos',
   'mascotasNombres',
   'mascotasDescripciones',
+  'adultosNombres',
+  'adultosApellidos',
+  'vehiculosTipos',
+  'vehiculosPlacas',
 ]
 
 const BULK_HEADERS_DESCRIPTIVE = [
-  'Nombre del Usuario',
-  'Apellido del Usuario',
+  'Nombre del Residente',
+  'Apellido del Residente',
   'Identificación del Usuario',
   'Correo del Usuario',
   'Clave del Usuario',
@@ -74,10 +78,14 @@ const BULK_HEADERS_DESCRIPTIVE = [
   'Tipo de mascota',
   'Nombre de la Mascota',
   'Descripción de la Mascota',
+  'Nombres de los Adultos',
+  'Apellidos de los Adultos',
+  'Tipos de Vehículos',
+  'Placas de los Vehículos',
 ]
 
 const BULK_REQUIRED_HEADERS = ['torre', 'apartamento', 'tipoResidente']
-const BULK_REQUIRED_USER_HEADERS = ['nombreUsuario', 'apellidoUsuario', 'identificacionUsuario', 'emailUsuario', 'claveUsuario']
+const BULK_REQUIRED_USER_HEADERS = ['identificacionUsuario', 'emailUsuario', 'claveUsuario']
 
 const emptyForm = () => ({
   idResidente: null,
@@ -428,10 +436,12 @@ function buildBulkModelFromRawRows(rawRows) {
 
   const previewRows = normalizedRows.slice(0, 8).map((row, index) => ({
     fila: index + 2,
-    nombreUsuario: row.nombreUsuario || '-',
-    'Nombre del Usuario': row.nombreUsuario || '-',
     emailUsuario: row.emailUsuario || '-',
     'Correo del Usuario': row.emailUsuario || '-',
+    nombre: row.nombre || '-',
+    'Nombre del Residente': row.nombre || '-',
+    apellido: row.apellido || '-',
+    'Apellido del Residente': row.apellido || '-',
     apartamento: row.apartamento || '-',
     Apartamento: row.apartamento || '-',
     apartamentoPiso: row.apartamentoPiso || '-',
@@ -450,6 +460,14 @@ function buildBulkModelFromRawRows(rawRows) {
     'Nombre de la Mascota': row.mascotasNombres || '-',
     mascotasDescripciones: row.mascotasDescripciones || '-',
     'Descripcion de la Mascota': row.mascotasDescripciones || '-',
+    adultosNombres: row.adultosNombres || '-',
+    'Nombres de los Adultos': row.adultosNombres || '-',
+    adultosApellidos: row.adultosApellidos || '-',
+    'Apellidos de los Adultos': row.adultosApellidos || '-',
+    vehiculosTipos: row.vehiculosTipos || '-',
+    'Tipos de Vehiculos': row.vehiculosTipos || '-',
+    vehiculosPlacas: row.vehiculosPlacas || '-',
+    'Placas de los Vehiculos': row.vehiculosPlacas || '-',
   }))
 
   return { rows: normalizedRows, previewRows }
@@ -622,8 +640,8 @@ function openCargaMasiva() {
 function descargarPlantillaCsv() {
   const data = [
     BULK_HEADERS_DESCRIPTIVE,
-    ['Carlos', 'Lopez', '10203040', 'carlos.lopez@urbansys.com', 'Temporal123!', '3001234567', 'RESIDENTE', 'Torre A', '101', '1', 'PROPIETARIO', 'Ana Maria - Luis Mateo', '10 - 7', 'perro - gato', 'Max - Mia', 'Labrador cafe - Gata siames'],
-    ['Luisa', 'Garcia', '88990011', 'luisa.garcia@urbansys.com', 'Temporal123!', '3000000000', 'RESIDENTE', 'Torre B', '301', '3', 'ARRENDATARIO', '', '', '', '', ''],
+    ['Juan', 'Perez', '10203040', 'carlos.lopez@urbansys.com', 'Temporal123!', '3001234567', 'RESIDENTE', 'Torre A', '101', '1', 'PROPIETARIO', 'Ana Maria - Luis Mateo', '10 - 7', 'perro - gato', 'Max - Mia', 'Labrador cafe - Gata siames', 'Maria - Carlos', 'Lopez - Garcia', 'CARRO - MOTO', 'ABC123 - DEF456'],
+    ['', '', '88990011', 'luisa.garcia@urbansys.com', 'Temporal123!', '3000000000', 'RESIDENTE', 'Torre B', '301', '3', 'ARRENDATARIO', '', '', '', '', '', '', '', '', ''],
   ]
 
   const workbook = XLSX.utils.book_new()
@@ -1138,52 +1156,109 @@ onMounted(async () => {
               <button class="modal-close" @click="closeModal"><span class="icon">close</span></button>
             </div>
 
-            <div v-if="modalMode === 'ver' && selectedResidente" class="modal-body">
-              <div class="detail-grid">
-                <div class="detail-item"><span class="detail-label">Usuario</span><p class="detail-value">{{ getUsuarioNombre(selectedResidente) }}</p></div>
-                <div class="detail-item"><span class="detail-label">Apartamento</span><p class="detail-value">{{ getApartamentoNumero(selectedResidente) }}</p></div>
-                <div class="detail-item"><span class="detail-label">Torre</span><p class="detail-value">{{ getTorreNombre(selectedResidente) }}</p></div>
-                <div class="detail-item"><span class="detail-label">Tipo Residente</span><p class="detail-value">{{ tipoConfig[selectedResidente.tipoResidente]?.label || selectedResidente.tipoResidente }}</p></div>
-                <div class="detail-item"><span class="detail-label">Tiene Hijos</span><p class="detail-value">{{ selectedResidenteHijos.length > 0 ? 'Si' : 'No' }}</p></div>
-                <div class="detail-item"><span class="detail-label">Tiene Mascota</span><p class="detail-value">{{ selectedResidenteMascotas.length > 0 ? 'Si' : 'No' }}</p></div>
-                <div class="detail-item"><span class="detail-label">Tiene Adultos</span><p class="detail-value">{{ selectedResidenteAdultos.length > 0 ? 'Si' : 'No' }}</p></div>
-                <div class="detail-item"><span class="detail-label">Tiene Vehículo</span><p class="detail-value">{{ selectedResidenteVehiculos.length > 0 ? 'Si' : 'No' }}</p></div>
-                <div class="detail-item full">
-                  <span class="detail-label">Hijos Registrados</span>
-                  <p v-if="selectedResidenteHijos.length === 0" class="detail-value">No registra hijos.</p>
+            <div v-if="modalMode === 'ver' && selectedResidente" class="modal-body detail-modal-body">
+              <section class="detail-hero">
+                <div class="detail-hero-icon">
+                  <span class="icon">person</span>
+                </div>
+                <div class="detail-hero-copy">
+                  <p class="detail-hero-kicker">Residente #{{ selectedResidente.idResidente ?? '-' }}</p>
+                  <h4 class="detail-hero-title">{{ getUsuarioNombre(selectedResidente) }}</h4>
+                  <p class="detail-hero-sub">Apartamento {{ getApartamentoNumero(selectedResidente) }} · Torre {{ getTorreNombre(selectedResidente) }}</p>
+                </div>
+                <div class="detail-hero-meta">
+                  <span
+                    class="tipo-badge detail-chip"
+                    :style="{
+                      background: tipoConfig[selectedResidente.tipoResidente]?.bg || '#f1f5f9',
+                      color: tipoConfig[selectedResidente.tipoResidente]?.color || '#475569'
+                    }"
+                  >
+                    {{ tipoConfig[selectedResidente.tipoResidente]?.label || selectedResidente.tipoResidente }}
+                  </span>
+                  <span class="detail-chip soft-chip">
+                    <span class="icon">apartment</span>
+                    {{ getApartamentoNumero(selectedResidente) }}
+                  </span>
+                  <span class="detail-chip soft-chip">
+                    <span class="icon">domain</span>
+                    {{ getTorreNombre(selectedResidente) }}
+                  </span>
+                </div>
+              </section>
+
+              <div class="detail-card-grid">
+                <article class="detail-card">
+                  <p class="detail-card-title"><span class="icon">account_circle</span> Identidad</p>
+                  <div class="detail-grid compact-grid single-column">
+                    <div class="detail-item full">
+                      <span class="detail-label">Usuario</span>
+                      <p class="detail-value">{{ getUsuarioNombre(selectedResidente) }}</p>
+                    </div>
+                    <div class="detail-item full">
+                      <span class="detail-label">Tipo residente</span>
+                      <p class="detail-value">{{ tipoConfig[selectedResidente.tipoResidente]?.label || selectedResidente.tipoResidente }}</p>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="detail-card">
+                  <p class="detail-card-title"><span class="icon">domain</span> Ubicación</p>
+                  <div class="detail-grid compact-grid single-column">
+                    <div class="detail-item full">
+                      <span class="detail-label">Apartamento</span>
+                      <p class="detail-value">{{ getApartamentoNumero(selectedResidente) }}</p>
+                    </div>
+                    <div class="detail-item full">
+                      <span class="detail-label">Torre</span>
+                      <p class="detail-value">{{ getTorreNombre(selectedResidente) }}</p>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="detail-card detail-card-alert">
+                  <p class="detail-card-title"><span class="icon">child_care</span> Hijos registrados</p>
+                  <p v-if="selectedResidenteHijos.length === 0" class="empty-detail-msg">No registra hijos.</p>
                   <div v-else class="detail-list">
-                    <p v-for="(hijo, index) in selectedResidenteHijos" :key="hijo.idHijo || index" class="detail-value">
-                      {{ index + 1 }}. {{ hijo.nombreCompleto }}{{ hijo.edad ? ` - ${hijo.edad} años` : '' }}
+                    <p v-for="(hijo, index) in selectedResidenteHijos" :key="hijo.idHijo || index" class="detail-value detail-list-item">
+                      <span class="detail-list-index">{{ index + 1 }}</span>
+                      <span class="detail-list-copy">{{ hijo.nombreCompleto }}{{ hijo.edad ? ` · ${hijo.edad} años` : '' }}</span>
                     </p>
                   </div>
-                </div>
-                <div class="detail-item full">
-                  <span class="detail-label">Mascotas Registradas</span>
-                  <p v-if="selectedResidenteMascotas.length === 0" class="detail-value">No registra mascotas.</p>
+                </article>
+
+                <article class="detail-card detail-card-alert">
+                  <p class="detail-card-title"><span class="icon">pets</span> Mascotas registradas</p>
+                  <p v-if="selectedResidenteMascotas.length === 0" class="empty-detail-msg">No registra mascotas.</p>
                   <div v-else class="detail-list">
-                    <p v-for="(mascota, index) in selectedResidenteMascotas" :key="mascota.idMascota || index" class="detail-value">
-                      {{ index + 1 }}. {{ mascota.tipo || 'Mascota' }} - {{ mascota.nombre || 'Sin nombre' }}{{ mascota.descripcion ? ` (${mascota.descripcion})` : '' }}
+                    <p v-for="(mascota, index) in selectedResidenteMascotas" :key="mascota.idMascota || index" class="detail-value detail-list-item">
+                      <span class="detail-list-index">{{ index + 1 }}</span>
+                      <span class="detail-list-copy">{{ mascota.tipo || 'Mascota' }} · {{ mascota.nombre || 'Sin nombre' }}{{ mascota.descripcion ? ` · ${mascota.descripcion}` : '' }}</span>
                     </p>
                   </div>
-                </div>
-                <div class="detail-item full">
-                  <span class="detail-label">Adultos Registrados</span>
-                  <p v-if="selectedResidenteAdultos.length === 0" class="detail-value">No registra adultos adicionales.</p>
+                </article>
+
+                <article class="detail-card detail-card-alert">
+                  <p class="detail-card-title"><span class="icon">person</span> Adultos registrados</p>
+                  <p v-if="selectedResidenteAdultos.length === 0" class="empty-detail-msg">No registra adultos adicionales.</p>
                   <div v-else class="detail-list">
-                    <p v-for="(adulto, index) in selectedResidenteAdultos" :key="adulto.idAdulto || index" class="detail-value">
-                      {{ index + 1 }}. {{ adulto.nombre }} {{ adulto.apellido }}
+                    <p v-for="(adulto, index) in selectedResidenteAdultos" :key="adulto.idAdulto || index" class="detail-value detail-list-item">
+                      <span class="detail-list-index">{{ index + 1 }}</span>
+                      <span class="detail-list-copy">{{ adulto.nombre }} {{ adulto.apellido }}</span>
                     </p>
                   </div>
-                </div>
-                <div class="detail-item full">
-                  <span class="detail-label">Vehículos Registrados</span>
-                  <p v-if="selectedResidenteVehiculos.length === 0" class="detail-value">No registra vehículos.</p>
+                </article>
+
+                <article class="detail-card detail-card-alert">
+                  <p class="detail-card-title"><span class="icon">directions_car</span> Vehículos registrados</p>
+                  <p v-if="selectedResidenteVehiculos.length === 0" class="empty-detail-msg">No registra vehículos.</p>
                   <div v-else class="detail-list">
-                    <p v-for="(vehiculo, index) in selectedResidenteVehiculos" :key="vehiculo.idVehiculo || index" class="detail-value">
-                      {{ index + 1 }}. {{ vehiculo.tipoVehiculo || 'Vehículo' }} - {{ vehiculo.placa || 'Sin placa' }}
+                    <p v-for="(vehiculo, index) in selectedResidenteVehiculos" :key="vehiculo.idVehiculo || index" class="detail-value detail-list-item">
+                      <span class="detail-list-index">{{ index + 1 }}</span>
+                      <span class="detail-list-copy">{{ vehiculo.tipoVehiculo || 'Vehículo' }} · {{ vehiculo.placa || 'Sin placa' }}</span>
                     </p>
                   </div>
-                </div>
+                </article>
               </div>
 
               <div class="modal-footer">
@@ -1289,7 +1364,8 @@ onMounted(async () => {
                       <thead>
                         <tr>
                           <th>Fila</th>
-                          <th>Nombre del Usuario</th>
+                          <th>Nombre del Residente</th>
+                          <th>Apellido del Residente</th>
                           <th>Correo del Usuario</th>
                           <th>Apartamento</th>
                           <th>Piso</th>
@@ -1297,12 +1373,15 @@ onMounted(async () => {
                           <th>Tipo de residente</th>
                           <th>Nombre de los Hijos / Edades</th>
                           <th>Tipo de mascota / Nombre</th>
+                          <th>Adultos</th>
+                          <th>Vehiculos</th>
                         </tr>
                       </thead>
                       <tbody>
                         <tr v-for="row in bulkPreviewRows" :key="row.fila">
                           <td>{{ row.fila }}</td>
-                          <td>{{ row['Nombre del Usuario'] }}</td>
+                          <td>{{ row['Nombre del Residente'] }}</td>
+                          <td>{{ row['Apellido del Residente'] }}</td>
                           <td>{{ row['Correo del Usuario'] }}</td>
                           <td>{{ row.Apartamento }}</td>
                           <td>{{ row.Piso }}</td>
@@ -1310,6 +1389,8 @@ onMounted(async () => {
                           <td>{{ row['Tipo de residente'] }}</td>
                           <td>{{ row['Nombre de los Hijos'] }} / {{ row['Edades de los Hijos'] }}</td>
                           <td>{{ row['Tipo de mascota'] }} / {{ row['Nombre de la Mascota'] }}</td>
+                          <td>{{ row['Nombres de los Adultos'] }} / {{ row['Apellidos de los Adultos'] }}</td>
+                          <td>{{ row['Tipos de Vehiculos'] }} / {{ row['Placas de los Vehiculos'] }}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -1702,6 +1783,216 @@ onMounted(async () => {
 .modal-close { width:2rem; height:2rem; display:flex; align-items:center; justify-content:center; background:#f1f5f9; border:none; border-radius:.5rem; cursor:pointer; color:#64748b; }
 .modal-body { padding:1.5rem 1.75rem; overflow-y:auto; }
 
+.detail-modal-body { display:flex; flex-direction:column; gap:1rem; }
+
+.detail-hero {
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  gap:1rem;
+  align-items:center;
+  padding:1rem 1.1rem;
+  border-radius:1rem;
+  background:linear-gradient(180deg,#f8fbff,#eef5fb);
+  border:1px solid #dbe7f4;
+}
+
+.detail-hero-icon {
+  width:3.1rem;
+  height:3.1rem;
+  border-radius:.95rem;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(135deg,#00355f,#0f4c81);
+  color:#fff;
+  box-shadow:0 10px 24px rgba(15,76,129,.2);
+}
+
+.detail-hero-icon .icon { font-size:26px; }
+
+.detail-hero-kicker {
+  margin:0 0 .2rem;
+  font-size:.68rem;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:#64748b;
+}
+
+.detail-hero-title {
+  margin:0 0 .2rem;
+  font-size:1.25rem;
+  font-weight:800;
+  color:#0d1b2a;
+  letter-spacing:-.03em;
+}
+
+.detail-hero-sub {
+  margin:0;
+  color:#5b6b80;
+  font-size:.875rem;
+  line-height:1.45;
+  font-weight:600;
+}
+
+.detail-hero-meta {
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:.5rem;
+}
+
+.detail-chip {
+  display:inline-flex;
+  align-items:center;
+  gap:.35rem;
+  padding:.45rem .7rem;
+  border-radius:999px;
+  font-size:.74rem;
+  font-weight:700;
+  white-space:nowrap;
+}
+
+.soft-chip {
+  background:#fff;
+  border:1px solid #dbe5f0;
+  color:#34495f;
+}
+
+.soft-chip .icon { font-size:16px; }
+
+.detail-card-grid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:.95rem;
+}
+
+.detail-card {
+  border:1px solid #e2e8f0;
+  border-radius:1rem;
+  background:#fff;
+  padding:1rem;
+  box-shadow:0 10px 24px rgba(15,23,42,.04);
+}
+
+.detail-card-alert {
+  grid-column:1/-1;
+  background:linear-gradient(180deg,#fff7f7,#fffdfd);
+  border-color:#dbe7f4;
+}
+
+.detail-card-title {
+  display:flex;
+  align-items:center;
+  gap:.45rem;
+  margin:0 0 .8rem;
+  color:#0f4c81;
+  font-size:.78rem;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+.detail-card-title .icon { font-size:18px; }
+
+.compact-grid { margin:0; gap:.8rem; }
+
+.single-column { grid-template-columns:1fr; }
+
+.compact-grid .detail-value {
+  font-size:.925rem;
+  color:#0d1b2a;
+}
+
+.compact-grid .detail-label { margin-bottom:.3rem; }
+
+.detail-metrics-row {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(132px,1fr));
+  gap:.75rem;
+}
+
+.mini-metric {
+  border-radius:.85rem;
+  padding:.9rem .85rem;
+  background:#f8fafc;
+  border:1px solid #e2e8f0;
+  display:flex;
+  align-items:center;
+  gap:.7rem;
+  text-align:left;
+}
+
+.mini-metric-value {
+  flex:0 0 auto;
+  width:2rem;
+  height:2rem;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:.7rem;
+  background:#eaf2fb;
+  font-size:1.05rem;
+  line-height:1;
+  font-weight:800;
+  color:#00355f;
+}
+
+.mini-metric-label {
+  display:block;
+  font-size:.68rem;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  color:#64748b;
+  line-height:1.25;
+  word-break:break-word;
+}
+
+.empty-detail-msg {
+  margin:0;
+  padding:.9rem 1rem;
+  border-radius:.85rem;
+  background:#f8fafc;
+  border:1px dashed #d7e2ec;
+  color:#64748b;
+  font-size:.86rem;
+  font-weight:600;
+}
+
+.detail-list { display:flex; flex-direction:column; gap:.55rem; }
+
+.detail-list-item {
+  display:flex;
+  align-items:flex-start;
+  gap:.55rem;
+  margin:0;
+  padding:.75rem .85rem;
+  background:#f8fafc;
+  border:1px solid #e2e8f0;
+  border-radius:.85rem;
+}
+
+.detail-list-index {
+  flex:0 0 auto;
+  width:1.45rem;
+  height:1.45rem;
+  border-radius:999px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(135deg,#00355f,#0f4c81);
+  color:#fff;
+  font-size:.68rem;
+  font-weight:800;
+}
+
+.detail-list-copy {
+  min-width:0;
+  color:#243b53;
+  line-height:1.45;
+}
+
 .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.125rem; margin-bottom:1.5rem; }
 .detail-item.full { grid-column:1/-1; }
 .detail-label { display:block; font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#94a3b8; margin-bottom:.375rem; }
@@ -2033,5 +2324,9 @@ onMounted(async () => {
   .form-grid { grid-template-columns:1fr; }
   .detail-grid { grid-template-columns:1fr; }
   .template-card { grid-template-columns:1fr; text-align:left; }
+  .detail-hero { grid-template-columns:1fr; justify-items:start; }
+  .detail-hero-meta { justify-content:flex-start; }
+  .detail-card-grid { grid-template-columns:1fr; }
+  .detail-metrics-row { grid-template-columns:1fr; }
 }
 </style>

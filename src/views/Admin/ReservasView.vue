@@ -6,8 +6,7 @@ import ApartamentoService from '@/services/Apartamento.Service'
 import ResidenteService from '@/services/Residente.Service'
 import UsuarioService from '@/services/Usuario.Service'
 import TorreService from '@/services/Torre.Service'
-import { swalConfirmDelete, swalError, swalSuccess, swalConfirmAction } from '@/utils/sweetalert'
-import Swal from 'sweetalert2'
+import { swalConfirmDelete, swalError, swalSuccess, swalConfirmAction, swalTextareaPrompt } from '@/utils/sweetalert'
 
 const searchQuery = ref('')
 const filterEstado = ref('todos')
@@ -523,24 +522,15 @@ async function cambiarEstado(item, nuevoEstado) {
     if (!confirmResult.isConfirmed) return
     await ReservasService.confirmar(item.idReservaSalon)
   } else if (nuevoEstado === 'cancelada') {
-    const { value: motivo, isConfirmed } = await Swal.fire({
+    const { value: motivo, isConfirmed } = await swalTextareaPrompt({
       title: 'Motivo de cancelación',
-      input: 'textarea',
-      inputPlaceholder: 'Describe el motivo de la cancelación...',
-      inputAttributes: { required: 'required' },
-      showCancelButton: true,
+      description: 'Explica brevemente por qué se cancela la reserva. Este texto quedará visible en el historial.',
+      placeholder: 'Describe el motivo de la cancelación...',
       confirmButtonText: 'Cancelar reserva',
       cancelButtonText: 'Volver',
-      confirmButtonColor: '#ba1a1a',
-      cancelButtonColor: '#64748b',
-      reverseButtons: true,
-      preConfirm: (val) => {
-        if (!val || !val.trim()) {
-          Swal.showValidationMessage('El motivo es obligatorio')
-          return false
-        }
-        return val.trim()
-      },
+      icon: 'event_busy',
+      accent: '#ba1a1a',
+      validationMessage: 'El motivo es obligatorio',
     })
     if (!isConfirmed) return
     await ReservasService.rechazar(item.idReservaSalon, motivo)
@@ -711,7 +701,7 @@ onMounted(() => {
     <Teleport to="body">
       <Transition name="modal">
         <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
-          <div class="modal-box">
+          <div class="modal-box" :class="{ 'modal-box-detail': modalMode === 'ver' }">
             <div class="modal-header">
               <div class="modal-title-row">
                 <div class="modal-title-icon">
@@ -729,20 +719,94 @@ onMounted(() => {
               <button class="modal-close" @click="closeModal"><span class="icon">close</span></button>
             </div>
 
-            <div v-if="modalMode === 'ver' && selectedReserva" class="modal-body">
-              <div class="detail-grid">
-                <div class="detail-item"><span class="detail-label">Salon comunal</span><p class="detail-value">{{ getSalonNombre(selectedReserva) }}</p></div>
-                <div class="detail-item"><span class="detail-label">Apartamento</span><p class="detail-value">{{ getApartamentoNumero(selectedReserva) }}</p></div>
-                <div class="detail-item"><span class="detail-label">Torre</span><p class="detail-value">{{ getTorreNombre(selectedReserva) }}</p></div>
-                <div class="detail-item"><span class="detail-label">Residente</span><p class="detail-value">{{ getResidenteNombre(selectedReserva) }}</p></div>
-                <div class="detail-item"><span class="detail-label">Fecha</span><p class="detail-value">{{ selectedReserva.fecha }}</p></div>
-                <div class="detail-item"><span class="detail-label">Hora inicio</span><p class="detail-value">{{ selectedReserva.horaInicio }}</p></div>
-                <div class="detail-item"><span class="detail-label">Hora fin</span><p class="detail-value">{{ selectedReserva.horaFin }}</p></div>
-                <div class="detail-item full"><span class="detail-label">Estado</span><p class="detail-value">{{ estadoConfig[selectedReserva.estado]?.label || selectedReserva.estado }}</p></div>
-                <div v-if="selectedReserva.estado === 'cancelada' && selectedReserva.motivoCancelacion" class="detail-item full">
-                  <span class="detail-label">Motivo de cancelación</span>
-                  <p class="detail-value motivo-text">{{ selectedReserva.motivoCancelacion }}</p>
+            <div v-if="modalMode === 'ver' && selectedReserva" class="modal-body detail-modal-body">
+              <section class="detail-hero">
+                <div class="detail-hero-icon">
+                  <span class="icon">event_available</span>
                 </div>
+                <div class="detail-hero-copy">
+                  <p class="detail-hero-kicker">Reserva #{{ selectedReserva.idReservaSalon ?? selectedReserva.id }}</p>
+                  <h4 class="detail-hero-title">{{ getSalonNombre(selectedReserva) }}</h4>
+                  <p class="detail-hero-sub">Apartamento {{ getApartamentoNumero(selectedReserva) }} · Torre {{ getTorreNombre(selectedReserva) }} · {{ getResidenteNombre(selectedReserva) }}</p>
+                </div>
+                <div class="detail-hero-meta">
+                  <span
+                    class="estado-badge"
+                    :style="{
+                      background: estadoConfig[selectedReserva.estado]?.bg || '#f1f5f9',
+                      color: estadoConfig[selectedReserva.estado]?.color || '#475569',
+                      borderColor: estadoConfig[selectedReserva.estado]?.border || '#e2e8f0'
+                    }"
+                  >
+                    <span class="estado-dot" :style="{ background: estadoConfig[selectedReserva.estado]?.dot || '#94a3b8' }"></span>
+                    {{ estadoConfig[selectedReserva.estado]?.label || selectedReserva.estado }}
+                  </span>
+                  <span class="detail-meta-pill">
+                    <span class="icon">calendar_today</span>
+                    {{ selectedReserva.fecha }}
+                  </span>
+                  <span class="detail-meta-pill">
+                    <span class="icon">schedule</span>
+                    {{ selectedReserva.horaInicio }} - {{ selectedReserva.horaFin }}
+                  </span>
+                </div>
+              </section>
+
+              <div class="detail-card-grid">
+                <article class="detail-card">
+                  <p class="detail-card-title"><span class="icon">domain</span> Ubicación</p>
+                  <div class="detail-grid compact-grid">
+                    <div class="detail-item">
+                      <span class="detail-label">Salon comunal</span>
+                      <p class="detail-value">{{ getSalonNombre(selectedReserva) }}</p>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Torre</span>
+                      <p class="detail-value">{{ getTorreNombre(selectedReserva) }}</p>
+                    </div>
+                    <div class="detail-item full">
+                      <span class="detail-label">Apartamento</span>
+                      <p class="detail-value">{{ getApartamentoNumero(selectedReserva) }}</p>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="detail-card">
+                  <p class="detail-card-title"><span class="icon">person</span> Responsable</p>
+                  <div class="detail-grid compact-grid single-column">
+                    <div class="detail-item full">
+                      <span class="detail-label">Residente</span>
+                      <p class="detail-value">{{ getResidenteNombre(selectedReserva) }}</p>
+                    </div>
+                    <div class="detail-item full">
+                      <span class="detail-label">Estado</span>
+                      <p class="detail-value">{{ estadoConfig[selectedReserva.estado]?.label || selectedReserva.estado }}</p>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="detail-card">
+                  <p class="detail-card-title"><span class="icon">schedule</span> Horario</p>
+                  <div class="detail-grid compact-grid single-column">
+                    <div class="detail-item full">
+                      <span class="detail-label">Fecha</span>
+                      <p class="detail-value">{{ selectedReserva.fecha }}</p>
+                    </div>
+                    <div class="detail-item full">
+                      <span class="detail-label">Hora inicio</span>
+                      <p class="detail-value">{{ selectedReserva.horaInicio }}</p>
+                    </div>
+                    <div class="detail-item full">
+                      <span class="detail-label">Hora fin</span>
+                      <p class="detail-value">{{ selectedReserva.horaFin }}</p>
+                    </div>
+                  </div>
+                </article>
+
+                <article v-if="selectedReserva.estado === 'cancelada' && selectedReserva.motivoCancelacion" class="detail-card detail-card-alert">
+                  <p class="detail-card-title"><span class="icon">cancel</span> Motivo de cancelación</p>
+                  <p class="motivo-text">{{ selectedReserva.motivoCancelacion }}</p>
+                </article>
               </div>
 
               <div class="modal-footer">
@@ -1000,6 +1064,7 @@ onMounted(() => {
 
 .modal-overlay { position:fixed; inset:0; z-index:200; background:rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; padding:1.5rem; backdrop-filter:blur(4px); }
 .modal-box { background:#fff; border-radius:1.5rem; width:100%; max-width:680px; box-shadow:0 24px 64px rgba(0,53,95,.2); overflow:hidden; }
+.modal-box-detail { max-width:920px; }
 .modal-header { display:flex; align-items:flex-start; justify-content:space-between; padding:1.5rem 1.75rem 1.25rem; border-bottom:1px solid #f1f5f9; }
 .modal-title-row { display:flex; align-items:center; gap:.875rem; }
 .modal-title-icon { width:2.5rem; height:2.5rem; border-radius:.75rem; background:linear-gradient(135deg,#00355f,#0f4c81); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
@@ -1008,6 +1073,137 @@ onMounted(() => {
 .modal-sub { font-size:.775rem; color:#64748b; margin:0; font-weight:500; }
 .modal-close { width:2rem; height:2rem; display:flex; align-items:center; justify-content:center; background:#f1f5f9; border:none; border-radius:.5rem; cursor:pointer; color:#64748b; }
 .modal-body { padding:1.5rem 1.75rem; }
+
+.detail-modal-body { display:flex; flex-direction:column; gap:1rem; }
+
+.detail-hero {
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  gap:1rem;
+  align-items:center;
+  padding:1rem 1.1rem;
+  border-radius:1rem;
+  background:linear-gradient(180deg,#f8fbff,#eef5fb);
+  border:1px solid #dbe7f4;
+}
+
+.detail-hero-icon {
+  width:3.1rem;
+  height:3.1rem;
+  border-radius:.95rem;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(135deg,#00355f,#0f4c81);
+  color:#fff;
+  box-shadow:0 10px 24px rgba(15,76,129,.2);
+}
+
+.detail-hero-icon .icon { font-size:26px; }
+
+.detail-hero-kicker {
+  margin:0 0 .2rem;
+  font-size:.68rem;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:#64748b;
+}
+
+.detail-hero-title {
+  margin:0 0 .2rem;
+  font-size:1.25rem;
+  font-weight:800;
+  color:#0d1b2a;
+  letter-spacing:-.03em;
+}
+
+.detail-hero-sub {
+  margin:0;
+  color:#5b6b80;
+  font-size:.875rem;
+  line-height:1.45;
+  font-weight:600;
+}
+
+.detail-hero-meta {
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:.5rem;
+}
+
+.detail-meta-pill {
+  display:inline-flex;
+  align-items:center;
+  gap:.35rem;
+  padding:.45rem .7rem;
+  border-radius:999px;
+  background:#fff;
+  border:1px solid #dbe5f0;
+  color:#34495f;
+  font-size:.74rem;
+  font-weight:700;
+}
+
+.detail-meta-pill .icon { font-size:16px; }
+
+.detail-card-grid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:.95rem;
+}
+
+.detail-card {
+  border:1px solid #e2e8f0;
+  border-radius:1rem;
+  background:#fff;
+  padding:1rem;
+  box-shadow:0 10px 24px rgba(15,23,42,.04);
+}
+
+.detail-card-alert {
+  grid-column:1/-1;
+  background:linear-gradient(180deg,#fff7f7,#fffdfd);
+  border-color:#fecaca;
+}
+
+.detail-card-title {
+  display:flex;
+  align-items:center;
+  gap:.45rem;
+  margin:0 0 .8rem;
+  color:#0f4c81;
+  font-size:.78rem;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+.detail-card-title .icon { font-size:18px; }
+
+.compact-grid { margin:0; gap:.8rem; }
+
+.single-column { grid-template-columns:1fr; }
+
+.compact-grid .detail-value {
+  font-size:.925rem;
+  color:#0d1b2a;
+}
+
+.compact-grid .detail-label { margin-bottom:.3rem; }
+
+.motivo-text {
+  margin:0;
+  padding:.9rem 1rem;
+  border-radius:.85rem;
+  background:#fff;
+  border:1px solid #fecaca;
+  color:#991b1b;
+  font-size:.86rem;
+  line-height:1.55;
+  font-weight:600;
+}
 
 .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.25rem; }
 .detail-item { display:flex; flex-direction:column; gap:.25rem; }
@@ -1171,5 +1367,9 @@ onMounted(() => {
   .modal-header, .modal-body { padding:1rem; }
   .form-grid { grid-template-columns:1fr; }
   .detail-grid { grid-template-columns:1fr; }
+  .modal-box-detail { max-width:100%; }
+  .detail-hero { grid-template-columns:1fr; justify-items:start; }
+  .detail-hero-meta { justify-content:flex-start; }
+  .detail-card-grid { grid-template-columns:1fr; }
 }
 </style>
